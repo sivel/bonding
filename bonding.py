@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import fcntl, socket, struct, IN, string, array, os, sys, re, platform, time, shutil, syslog
 from optparse import OptionParser, OptionGroup
 from distutils.version import LooseVersion

@@ -762,11 +762,14 @@ https://github.com/sivel/bonding''')
     if not options.bond or not options.iface or not options.ip or not options.netmask:
       print 'You must supply a bond interface name, slave interfaces, IP Address and netmask'
       sys.exit(1)
+
+    if not options.mode:
+      options.mode = 1
+
     extraOpts = ''
     if int(options.mode) == 4:
       extraOpts = ' lacp_rate=1'
-    if not options.mode:
-      options.mode = 1
+
     bondInfo = {
       'master':  options.bond,
       'slaves':  options.iface,
@@ -776,6 +779,7 @@ https://github.com/sivel/bonding''')
       'mode':    options.mode,
       'opts':    extraOpts,
     }
+
     doBond({}, bondInfo)
     sys.exit(0)
   elif options.onlypeers:

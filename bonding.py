@@ -747,9 +747,16 @@ def handleArgs():
     '6', 'balance-alb',
   ]
 
-  parser = OptionParser(description='''A script used to configure bonding on Linux machines, and to determine which interface groups (peers) are available for bonding.
+  usage = """
+  %prog [--nopeers]
+  %prog --onlypeers
+  %prog --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]"""
+
+  description = """A script used to configure bonding on Linux machines, and to determine which interface groups (peers) are available for bonding.
 ------------------------------------------------------------------------------
-https://github.com/sivel/bonding''')
+https://github.com/sivel/bonding"""
+
+  parser = OptionParser(description=description, usage=usage)
 
   peersGroup = OptionGroup(parser, 'Peers')
   peersGroup.add_option('--onlypeers', help='Only run the peers portion of this utility, to identify bonded peer interfaces', action='store_true')
@@ -758,12 +765,12 @@ https://github.com/sivel/bonding''')
 
   unattendGroup = OptionGroup(parser, 'Unattended')
   unattendGroup.add_option('--unattend', help='Whether to run this command unattended', action='store_true')
-  unattendGroup.add_option('--bond',     help='The bonded master interface name')
-  unattendGroup.add_option('--mode',     help='The bonding mode to be used', choices=modes)
-  unattendGroup.add_option('--ip',       help='The IP address to use in the bond')
-  unattendGroup.add_option('--netmask',  help='The IP address to use in the bond')
-  unattendGroup.add_option('--gateway',  help='The default gateway to use for the system, if this is specified, the gateway and gateway dev will be updated')
-  unattendGroup.add_option('--iface',    help='The interfaces to be used in the bond, specify multiple times for multiple interfaces', action='append')
+  unattendGroup.add_option('--bond',     help='The bonded master interface name. Required when using --unattend')
+  unattendGroup.add_option('--ip',       help='The IP address to use in the bond. Required when using --unattend')
+  unattendGroup.add_option('--netmask',  help='The Netmask to use in the bond. Required when using --unattend')
+  unattendGroup.add_option('--iface',    help='The interfaces to be used in the bond, specify multiiple times for multiple interfaces. Required when using --unattend', action='append')
+  unattendGroup.add_option('--gateway',  help='The default gateway to use for the system, if this is specified, the gateway and gateway dev will be updated. default: none')
+  unattendGroup.add_option('--mode',     help='The bonding mode to be used. default: active-backup', choices=modes)
   parser.add_option_group(unattendGroup)
 
   (options, args) = parser.parse_args()

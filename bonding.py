@@ -727,6 +727,16 @@ iface %s %s
   print "\n%sAdditionally, be aware that networking will likely mark all slave interfaces as down if you use /etc/init.d/networking restart, you will have to ifdown and then ifup each individually, this will require DRAC access if the first bond has the default gateway.%s" % (YELLOW, RESET)
 
 def handleArgs():
+  modeMap = {
+    '0': 'balance-rr',
+    '1': 'active-backup',
+    '2': 'balance-xor',
+    '3': 'broadcast',
+    '4': '802.3ad',
+    '5': 'balance-tlb',
+    '6': 'balance-alb',
+  }
+
   modes = [
     '0', 'balance-rr',
     '1', 'active-backup',
@@ -764,11 +774,14 @@ https://github.com/sivel/bonding''')
       sys.exit(1)
 
     if not options.mode:
-      options.mode = 1
+      options.mode = '1'
 
     extraOpts = ''
     if int(options.mode) == 4:
       extraOpts = ' lacp_rate=1'
+
+    if options.mode in modeMap:
+      options.mode = modeMap[options.mode]
 
     bondInfo = {
       'master':  options.bond,

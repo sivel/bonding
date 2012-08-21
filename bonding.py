@@ -15,11 +15,14 @@ CYAN   = '\033[96m'
 PINK   = '\033[95m'
 BLUE   = '\033[94m'
 
-ETH_P_ALL = 0x0003
+# Non DIX types (if_ether.h)
+ETH_P_ALL = 0x0003             # Every packet (be careful!!!)
 
+# Socket configuration controls (sockios.h)
 SIOCGIFNAME     = 0x8910       # get iface name
 SIOCGIFCONF     = 0x8912       # get iface list
 SIOCGIFFLAGS    = 0x8913       # get flags
+SIOCSIFFLAGS    = 0x8914       # set flags
 SIOCGIFADDR     = 0x8915       # get PA address
 SIOCGIFDSTADDR  = 0x8917       # get remote PA address
 SIOCGIFBRDADDR  = 0x8919       # get broadcast PA address
@@ -37,14 +40,14 @@ SIOCGIFCOUNT    = 0x8938       # get number of devices
 SIOCGIFBR       = 0x8940       # Bridging support
 SIOCGIFTXQLEN   = 0x8942       # Get the tx queue length
 SIOCGIFDIVERT   = 0x8944       # Frame diversion support
+SIOCETHTOOL     = 0x8946       # Ethtool interface
 SIOCGIFMAP      = 0x8970       # Get device parameters
 SIOCGIFVLAN     = 0x8982       # 802.1Q VLAN support
 
-SIOCSIFFLAGS    = 0x8914       # set flags
-
-SIOCETHTOOL     = 0x8946
+# Ethtool CMDs currently supported (ethtool.h)
 ETHTOOL_GLINK   = 0x0000000a   # Get link status
 
+# Standard interface flags (net/if.h)
 IFF_UP          = 0x1          # Interface is up.
 IFF_BROADCAST   = 0x2          # Broadcast address valid.
 IFF_DEBUG       = 0x4          # Turn on debugging.
@@ -312,7 +315,7 @@ def collectBondInfo(groups, distro):
 
   bondRange = range(0,101)
   if bonds:
-    print '%sThe following bonded interfaces are already configured:\n' % YELLOW
+    print '%s\nThe following bonded interfaces are already configured:\n' % YELLOW
     for bondIface in bonds:
       print '%s' % bondIface
       bondInt = int(bondIface.replace('bond', ''))

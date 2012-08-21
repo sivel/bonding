@@ -3,6 +3,9 @@ import fcntl, socket, struct, IN, string, array, os, sys, re, platform, time, sh
 from optparse import OptionParser, OptionGroup
 from distutils.version import LooseVersion
 
+TIMEOUT = 0.05       # In seconds
+USEREALSRCMAC = True # Use the real source MAC address or 00:00:00:00:00:00
+
 GREEN  = '\033[92m'
 RESET  = '\033[0m'
 RED    = '\033[91m'
@@ -83,14 +86,16 @@ def get_network_addr(ifname, type):
   except IOError:
     return None
 
-def get_mac_addr(ifname):
+def get_mac_addr_raw(ifname):
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  info = fcntl.ioctl(
+  return fcntl.ioctl(
     s.fileno(),
     SIOCGIFHWADDR,
     struct.pack('256s', ifname[:15])
   )[18:24]
-  return ''.join(['%02x:' % ord(char) for char in info])[:-1]
+
+def get_mac_addr(ifname):
+  return ''.join(['%02x:' % ord(char) for char in get_mac_addr_raw(ifname)])[:-1]
 
 def is_iface_flags(ifname, type):
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -219,11 +224,14 @@ def peers(quiet = True):
       continue
 
     # The data required for building the frame
-    static = 'RAX%sRAX' % send_iface
-    payload = '%s%s' % (static, os.urandom(46 - len(static)))
-    dstMac = '\xff\xff\xff\xff\xff\xff'
-    srcMac = '\x00\x00\x00\x00\x00\x00'
-    frameType = '\x98\x98'
+    static = 'IF%sIF' % send_iface # Static data for frame payload that includes the sending interface name
+    payload = '%s%s' % (static, os.urandom(46 - len(static))) # Build the rest of the payload using random data
+    dstMac = '\xff\xff\xff\xff\xff\xff' # Broadcast FF:FF:FF:FF:FF:FF
+    if USEREALSRCMAC:
+      srcMac = get_mac_addr_raw(send_iface) # The real MAC address of the sending interface
+    else:
+      srcMac = '\x00\x00\x00\x00\x00\x00' # Invalid source MAC
+    frameType = '\x50\x44' # Unregistered EtherType, used in this case for Interface Peer Discovery
 
     # Set up the sending interface socket
     s1 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
@@ -243,7 +251,7 @@ def peers(quiet = True):
       s2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
       s2.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, recv_iface + '\0')
       s2.bind((recv_iface, 0))
-      s2.settimeout(1)
+      s2.settimeout(TIMEOUT)
 
       # Place current reciving interface into permiscuous mode
       current_flags = 0

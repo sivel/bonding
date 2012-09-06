@@ -299,6 +299,89 @@ def peers(quiet = True):
     print 'Done'
   return groups
 
+def automated():
+  syslog.openlog('bonding')
+  syslog.syslog('Beginning an automated bonding configuration')
+
+  mode = 'active-backup'
+
+  ifaces = get_iface_list()
+  bondRange = range(0,101)
+
+  masters = {}
+  for iface in ifaces:
+    slaves = get_slave_iface_list(iface)
+    if is_iface_master(iface):
+      bondInt = int(iface.replace('bond', ''))
+      del bondRange[bondRange.index(bondInt)]
+      if slaves:
+        masters[iface] = slaves
+
+  bond = 'bond%s' % bondRange[0]
+
+  gatewayDev = get_default_gateway_dev()
+  gateway = get_default_gateway()
+  if not gatewayDev or not gateway:
+    msg = 'There are no interfaces that contain the default route.'
+    print msg
+    syslog.syslog(msg)
+    sys.exit(1)
+
+  if 'bond' in gatewayDev or is_iface_master(gatewayDev):
+    msg = 'The gateway device is already a master/bonded interface'
+    print msg
+    syslog.syslog(msg)
+    sys.exit(1)
+
+  ipaddr = get_ip_address(gatewayDev)
+  if not ipaddr:
+    msg = 'There is no IP Address configured on the device containing the default route.'
+    print msg
+    syslog.syslog(msg)
+    sys.exit()
+
+  netmask = get_network_mask(gatewayDev)
+  if not netmask:
+    msg = 'There is no Network Mask configured on the device containing the default route.'
+    print msg
+    syslog.syslog(msg)
+    sys.exit()
+
+  slaves = []
+  groups = peers()
+  for group in groups:
+    if group == gatewayDev or gatewayDev in groups[group]:
+      slaves = [group] + groups[group]
+
+  if len(groups) != 2:
+    msg = 'Automated bonding will only work when there are exactly 2 peer interfaces,\nthe first being the gateway device and another interface.\n Number of interfaces found: %s (%s)' % ( len(slaves), ', '.join(slaves) )
+    print msg
+    syslog.syslog(msg)
+    sys.exit(1)
+
+  for master in masters:
+    for slave in slaves:
+      if slave in masters[master]:
+        msg = '%s is already part of a bond (%s)' % (gatewayDev, master)
+        print msg
+        syslog.syslog(msg)
+        sys.exit(1)
+
+  bondInfo = {
+    'master':  bond,
+    'slaves':  slaves,
+    'ipaddr':  ipaddr,
+    'netmask': netmask,
+    'gateway': gateway,
+    'mode':    mode,
+    'opts':    '',
+  }
+
+  syslog.syslog('Automated bonding configuration: %s' % repr(bondInfo))
+
+  doBond({}, bondInfo)
+
+
 def collectBondInfo(groups, distro):
   ifaces = get_iface_list()
   bonds = {}
@@ -499,7 +582,8 @@ def doBond(groups = {}, bondInfo = {}):
     print '\n%sThis bonding script does not support the OS that you are attempting to configure bonding on.%s' % (RED, RESET)
     sys.exit(1)
 
-  print '\n%sBonding has been configured! The only thing left is to restart networking.%s' % (GREEN, RESET)
+  if not bondInfo:
+    print '\n%sBonding has been configured! The only thing left is to restart networking.%s' % (GREEN, RESET)
 
 def bondRHEL(version, distro, groups, bondInfo):
   syslog.openlog('bonding')
@@ -509,7 +593,7 @@ def bondRHEL(version, distro, groups, bondInfo):
     bondInfo = collectBondInfo(groups, 'redhat')
     syslog.syslog('Interactively collecting bonding configuration')
   else:
-    syslog.syslog('Bonding configuration supplied for an unattended run')
+    syslog.syslog('Bonding configuration supplied for an unattended or automated run')
 
   hasNM = False
   if ( LooseVersion(version) >= '6' and distro in ['redhat', 'centos'] ) or distro == 'fedora':
@@ -528,7 +612,8 @@ def bondRHEL(version, distro, groups, bondInfo):
   backupDir = '%s/%s-bak-%s' % (netScripts, bondInfo['master'], date)
 
   syslog.syslog('Backing up configuration files before modification to %s' % backupDir)
-  print 'Backing up existing ifcfg files to %s' % backupDir
+  if not bondInfo:
+    print 'Backing up existing ifcfg files to %s' % backupDir
   if not os.path.isdir(backupDir):
     os.mkdir(backupDir, 0755)
   else:
@@ -539,7 +624,8 @@ def bondRHEL(version, distro, groups, bondInfo):
     if os.path.exists('%s/ifcfg-%s' % (netScripts, iface)):
       shutil.move('%s/ifcfg-%s' % (netScripts, iface), backupDir)
 
-  print 'Configuring bonding...'
+  if not bondInfo:
+    print 'Configuring bonding...'
   syslog.syslog('Writing %s/ifcfg-%s' % (netScripts, bondInfo['master']))
   bfh = open('%s/ifcfg-%s' % (netScripts, bondInfo['master']), 'w')
   ifaceCfg = '''DEVICE=%(master)s
@@ -626,14 +712,15 @@ def bondDeb(groups, bondInfo):
     bondInfo = collectBondInfo(groups, 'debian')
     syslog.syslog('Interactively collecting bonding configuration')
   else:
-    syslog.syslog('Bonding configuration supplied for an unattended run')
+    syslog.syslog('Bonding configuration supplied for an unattended or automated run')
 
   date = time.strftime('%Y-%m-%d')
   netDir = '/etc/network'
   backupDir = '%s/%s-bak-%s' % (netDir, bondInfo['master'], date)
 
   syslog.syslog('Backing up configuration files before modification to %s' % backupDir)
-  print 'Backing up existing ifcfg files to %s' % backupDir
+  if not bondInfo:
+    print 'Backing up existing ifcfg files to %s' % backupDir
   if not os.path.isdir(backupDir):
     os.mkdir(backupDir, 0755)
   else:
@@ -733,9 +820,10 @@ iface %s %s
 
   syslog.syslog('Bonding configuration has completed')
 
-  print '\n%sNOTE: After you restart networking you will also have to manually remove the IP address used in the bond from the interface that previously held it as debian/ubuntu will not do this.%s' % (YELLOW, RESET)
+  if not bondInfo:
+    print '\n%sNOTE: After you restart networking you will also have to manually remove the IP address used in the bond from the interface that previously held it as debian/ubuntu will not do this.%s' % (YELLOW, RESET)
 
-  print "\n%sAdditionally, be aware that networking will likely mark all slave interfaces as down if you use /etc/init.d/networking restart, you will have to ifdown and then ifup each individually, this will require DRAC access if the first bond has the default gateway.%s" % (YELLOW, RESET)
+    print "\n%sAdditionally, be aware that networking will likely mark all slave interfaces as down if you use /etc/init.d/networking restart, you will have to ifdown and then ifup each individually, this will require DRAC access if the first bond has the default gateway.%s" % (YELLOW, RESET)
 
 def handleArgs():
   modeMap = {
@@ -761,6 +849,7 @@ def handleArgs():
   usage = """
   %prog [--nopeers]
   %prog --onlypeers
+  %prog --automated
   %prog --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]"""
 
   description = """A script used to configure bonding on Linux machines, and to determine which interface groups (peers) are available for bonding.
@@ -775,18 +864,22 @@ https://github.com/sivel/bonding"""
   parser.add_option_group(peersGroup)
 
   unattendGroup = OptionGroup(parser, 'Unattended')
-  unattendGroup.add_option('--unattend', help='Whether to run this command unattended', action='store_true')
-  unattendGroup.add_option('--bond',     help='The bonded master interface name. Required when using --unattend')
-  unattendGroup.add_option('--ip',       help='The IP address to use in the bond. Required when using --unattend')
-  unattendGroup.add_option('--netmask',  help='The Netmask to use in the bond. Required when using --unattend')
-  unattendGroup.add_option('--iface',    help='The interfaces to be used in the bond, specify multiiple times for multiple interfaces. Required when using --unattend', action='append')
-  unattendGroup.add_option('--gateway',  help='The default gateway to use for the system, if this is specified, the gateway and gateway dev will be updated. default: none')
-  unattendGroup.add_option('--mode',     help='The bonding mode to be used. default: active-backup', choices=modes)
+  unattendGroup.add_option('--automated', help='Whether to run this command automated, this is different from unattended which requires information about how to configure the bond. This option requires no additional options and will ignore them', action='store_true')
+  unattendGroup.add_option('--unattend',  help='Whether to run this command unattended', action='store_true')
+  unattendGroup.add_option('--bond',      help='The bonded master interface name. Required when using --unattend')
+  unattendGroup.add_option('--ip',        help='The IP address to use in the bond. Required when using --unattend')
+  unattendGroup.add_option('--netmask',   help='The Netmask to use in the bond. Required when using --unattend')
+  unattendGroup.add_option('--iface',     help='The interfaces to be used in the bond, specify multiiple times for multiple interfaces. Required when using --unattend', action='append')
+  unattendGroup.add_option('--gateway',   help='The default gateway to use for the system, if this is specified, the gateway and gateway dev will be updated. default: none')
+  unattendGroup.add_option('--mode',      help='The bonding mode to be used. default: active-backup', choices=modes)
   parser.add_option_group(unattendGroup)
 
   (options, args) = parser.parse_args()
 
-  if options.unattend:
+  if options.automated:
+    automated()
+    sys.exit(0)
+  elif options.unattend:
     if not options.bond or not options.iface or not options.ip or not options.netmask:
       print 'You must supply a bond interface name, slave interfaces, IP Address and netmask'
       sys.exit(1)

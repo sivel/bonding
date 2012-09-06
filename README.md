@@ -22,14 +22,18 @@ Usage
 -----
 
     $ python bonding.py --help
-    Usage: bonding.py [options]
+    usage: 
+      bonding.py [--nopeers]
+      bonding.py --onlypeers
+      bonding.py --automated
+      bonding.py --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]
     
     A script used to configure bonding on Linux machines, and to determine which
     interface groups (peers) are available for bonding.
     ------------------------------------------------------------------------------
     https://github.com/sivel/bonding
     
-    Options:
+    options:
       -h, --help           show this help message and exit
     
       Peers:
@@ -38,15 +42,24 @@ Usage
         --nopeers          Do not run the peers portion of this utility
     
       Unattended:
+        --automated        Whether to run this command automated, this is
+                           different from unattended which requires information
+                           about how to configure the bond. This option requires
+                           no additional options and will ignore them
         --unattend         Whether to run this command unattended
-        --bond=BOND        The bonded master interface name
-        --mode=MODE        The bonding mode to be used
-        --ip=IP            The IP address to use in the bond
-        --netmask=NETMASK  The IP address to use in the bond
+        --bond=BOND        The bonded master interface name. Required when using
+                           --unattend
+        --ip=IP            The IP address to use in the bond. Required when using
+                           --unattend
+        --netmask=NETMASK  The Netmask to use in the bond. Required when using
+                           --unattend
+        --iface=IFACE      The interfaces to be used in the bond, specify
+                           multiiple times for multiple interfaces. Required when
+                           using --unattend
         --gateway=GATEWAY  The default gateway to use for the system, if this is
-                           specified, the gateway and gateway dev will be updated
-        --iface=IFACE      The interfaces to be used in the bond, specify multiple
-                           times for multiple interfaces
+                           specified, the gateway and gateway dev will be updated.
+                           default: none
+        --mode=MODE        The bonding mode to be used. default: active-backup
 
 Bugs
 ----

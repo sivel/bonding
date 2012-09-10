@@ -469,15 +469,7 @@ that have not yet been loaded into the running configuration.''' % GREEN
     '6': 'balance-alb',
   }
 
-  modes = [
-    '0', 'balance-rr',
-    '1', 'active-backup',
-    '2', 'balance-xor',
-    '3', 'broadcast',
-    '4', '802.3ad',
-    '5', 'balance-tlb',
-    '6', 'balance-alb',
-  ]
+  modes = modeMap.keys() + modeMap.values()
 
   mode = defaults('Which bonding mode do you want to use for %s?' % bond, 'active-backup')
   if mode not in modes:
@@ -850,15 +842,7 @@ def handleArgs():
     '6': 'balance-alb',
   }
 
-  modes = [
-    '0', 'balance-rr',
-    '1', 'active-backup',
-    '2', 'balance-xor',
-    '3', 'broadcast',
-    '4', '802.3ad',
-    '5', 'balance-tlb',
-    '6', 'balance-alb',
-  ]
+  modes = modeMap.keys() + modeMap.values()
 
   usage = """
   %prog [--nopeers]

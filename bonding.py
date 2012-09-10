@@ -212,16 +212,30 @@ def peers(quiet = True):
   ifaces = get_iface_list()
 
   # Enable all normal interfaces
+  if not quiet:
+    sys.stdout.write('Enabling interfaces')
+    sys.stdout.flush()
   for iface in ifaces:
     if is_iface_loopback(iface) or is_iface_master(iface):
       continue
+    if not quiet:
+      sys.stdout.write('.')
+      sys.stdout.flush()
+    syslog.syslog('Enabling interface %s' % iface)
     set_iface_flag(iface, IFF_UP)
 
+  if not quiet:
+    print '\nSleeping 2 seconds for switch port negotiation...'
+  time.sleep(2)
+
+  if not quiet:
+    sys.stdout.write('Scanning')
+    sys.stdout.flush()
   secondaries = []
   groups = {}
   for send_iface in ifaces:
     if not quiet:
-      print '.',
+      sys.stdout.write('.')
       sys.stdout.flush()
     if is_iface_loopback(send_iface) or is_iface_master(send_iface) or send_iface in secondaries:
       continue
@@ -245,7 +259,7 @@ def peers(quiet = True):
 
     for recv_iface in ifaces:
       if not quiet:
-        print '.',
+        sys.stdout.write('.')
         sys.stdout.flush()
       if is_iface_loopback(recv_iface) or is_iface_master(recv_iface) or recv_iface == send_iface:
         continue

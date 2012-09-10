@@ -353,7 +353,7 @@ def automated():
     if group == gatewayDev or gatewayDev in groups[group]:
       slaves = [group] + groups[group]
 
-  if len(groups) != 2:
+  if len(slaves) != 2:
     msg = 'Automated bonding will only work when there are exactly 2 peer interfaces,\nthe first being the gateway device and another interface.\n Number of interfaces found: %s (%s)' % ( len(slaves), ', '.join(slaves) )
     print msg
     syslog.syslog(msg)

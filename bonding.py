@@ -225,8 +225,8 @@ def peers(quiet = True):
     set_iface_flag(iface, IFF_UP)
 
   if not quiet:
-    print '\nSleeping 2 seconds for switch port negotiation...'
-  time.sleep(2)
+    print '\nSleeping 5 seconds for switch port negotiation...'
+  time.sleep(5)
 
   if not quiet:
     sys.stdout.write('Scanning')

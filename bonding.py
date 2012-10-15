@@ -743,6 +743,7 @@ def bondDeb(groups, bondInfo):
   interfacesDict = {'auto': []}
   iface = None
   for line in interfacesLines:
+    line = line.strip()
     if line.startswith('iface'):
       fields = line.split()
       iface = fields[1]
@@ -750,9 +751,14 @@ def bondDeb(groups, bondInfo):
     elif line.startswith('auto'):
       fields = line.split()
       interfacesDict['auto'].append(fields[1])
-    elif re.match('^\s', line) and iface:
-      line = line.strip()
-      if line.startswith('#') or not line:
+    elif line.startswith('source'):
+      continue # TODO: handle this
+    elif line.startswith('mapping'):
+      continue # TODO: handle this
+    elif line.startswith('apply-'):
+      continue # TODO: handle this
+    elif line and iface:
+      if line.startswith('#'):
         continue
       fields = line.split()
       interfacesDict[iface]['conf'][fields[0]] = ' '.join(fields[1:])

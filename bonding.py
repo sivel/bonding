@@ -595,6 +595,10 @@ def bondRHEL(version, distro, groups, bondInfo):
   syslog.openlog('bonding')
   syslog.syslog('Bonding configuration started')
 
+  providedBondInfo = True
+  if not bondInfo:
+    providedBondInfo = False
+
   if not bondInfo:
     bondInfo = collectBondInfo(groups, 'redhat')
     syslog.syslog('Interactively collecting bonding configuration')
@@ -618,7 +622,7 @@ def bondRHEL(version, distro, groups, bondInfo):
   backupDir = '%s/%s-bak-%s' % (netScripts, bondInfo['master'], date)
 
   syslog.syslog('Backing up configuration files before modification to %s' % backupDir)
-  if not bondInfo:
+  if not providedBondInfo:
     print 'Backing up existing ifcfg files to %s' % backupDir
   if not os.path.isdir(backupDir):
     os.mkdir(backupDir, 0755)
@@ -630,7 +634,7 @@ def bondRHEL(version, distro, groups, bondInfo):
     if os.path.exists('%s/ifcfg-%s' % (netScripts, iface)):
       shutil.move('%s/ifcfg-%s' % (netScripts, iface), backupDir)
 
-  if not bondInfo:
+  if not providedBondInfo:
     print 'Configuring bonding...'
   syslog.syslog('Writing %s/ifcfg-%s' % (netScripts, bondInfo['master']))
   bfh = open('%s/ifcfg-%s' % (netScripts, bondInfo['master']), 'w')
@@ -709,6 +713,10 @@ def bondDeb(groups, bondInfo):
   syslog.openlog('bonding')
   syslog.syslog('Bonding configuration started')
 
+  providedBondInfo = True
+  if not bondInfo:
+    providedBondInfo = False
+
   if not os.path.exists('/sbin/ifenslave'):
     print '%sThe ifenslave package must be installed for bonding to work%s' % (RED, RESET)
     syslog.syslog('/sbin/ifenslave is missing, cannot continue')
@@ -725,7 +733,7 @@ def bondDeb(groups, bondInfo):
   backupDir = '%s/%s-bak-%s' % (netDir, bondInfo['master'], date)
 
   syslog.syslog('Backing up configuration files before modification to %s' % backupDir)
-  if not bondInfo:
+  if not providedBondInfo:
     print 'Backing up existing ifcfg files to %s' % backupDir
   if not os.path.isdir(backupDir):
     os.mkdir(backupDir, 0755)
@@ -832,7 +840,7 @@ iface %s %s
 
   syslog.syslog('Bonding configuration has completed')
 
-  if not bondInfo:
+  if not providedBondInfo:
     print '\n%sNOTE: After you restart networking you will also have to manually remove the IP address used in the bond from the interface that previously held it as debian/ubuntu will not do this.%s' % (YELLOW, RESET)
 
     print "\n%sAdditionally, be aware that networking will likely mark all slave interfaces as down if you use /etc/init.d/networking restart, you will have to ifdown and then ifup each individually, this will require DRAC access if the first bond has the default gateway.%s" % (YELLOW, RESET)

@@ -67,6 +67,7 @@ Exit Codes
 ### Generic
 
     1: Generic Error
+    2: Not all options provided for an unattended configuration
 
 ### Automated
 
@@ -77,22 +78,12 @@ Exit Codes
     104: Automated bonding will only work when there are exactly 2 peer interfaces, more than 2 found.
     105: Interface is already part of a bond
 
-### Unattended
+### Operating System
 
-    200: Not all options provided for an unattended configuration 
-
-### OS Independent	
-
-    300: OS Unsupported
-    301: Backup directory already exists
-
-### Red Hat
-
-    400: Red Hat Network Manager enabled
-
-### Debian
-
-    500: Debian ifenslave package is not installed or cannot be located
+    200: OS Unsupported
+    201: Backup directory already exists
+    202: Red Hat Network Manager enabled
+    203: Debian ifenslave package is not installed or cannot be located
 
 Bugs
 ----

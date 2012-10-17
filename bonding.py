@@ -586,7 +586,7 @@ def doBond(groups = {}, bondInfo = {}):
 
   if not didBonding:
     print '\n%sThis bonding script does not support the OS that you are attempting to configure bonding on.%s' % (RED, RESET)
-    sys.exit(300)
+    sys.exit(200)
 
   if not bondInfo:
     print '\n%sBonding has been configured! The only thing left is to restart networking.%s' % (GREEN, RESET)
@@ -615,7 +615,7 @@ def bondRHEL(version, distro, groups, bondInfo):
       if os.path.exists('/proc/%s/comm' % pid) and open('/proc/%s/comm' % pid).read().strip() == 'NetworkManager':
         print '%sNetworkManager must be stopped and the network service started before you can run this script.%s' % (RED, RESET)
         syslog.syslog('NetworkManager is running, cannot continue')
-        sys.exit(400)
+        sys.exit(202)
 
   date = time.strftime('%Y-%m-%d')
   netScripts = '/etc/sysconfig/network-scripts'
@@ -629,7 +629,7 @@ def bondRHEL(version, distro, groups, bondInfo):
   else:
     print '%sThe backup directory already exists, to prevent overwriting required backup files, this script will exit.%s' % (RED, RESET)
     syslog.syslog('The backup directory already exists, cannot coninute')
-    sys.exit(301)
+    sys.exit(201)
   for iface in bondInfo['slaves'] + [bondInfo['master']]:
     if os.path.exists('%s/ifcfg-%s' % (netScripts, iface)):
       shutil.move('%s/ifcfg-%s' % (netScripts, iface), backupDir)
@@ -720,7 +720,7 @@ def bondDeb(groups, bondInfo):
   if not os.path.exists('/sbin/ifenslave'):
     print '%sThe ifenslave package must be installed for bonding to work%s' % (RED, RESET)
     syslog.syslog('/sbin/ifenslave is missing, cannot continue')
-    sys.exit(500)
+    sys.exit(203)
 
   if not bondInfo:
     bondInfo = collectBondInfo(groups, 'debian')
@@ -740,7 +740,7 @@ def bondDeb(groups, bondInfo):
   else:
     print '%sThe backup directory already exists, to prevent overwriting required backup files, this script will exit.%s' % (RED, RESET)
     syslog.syslog('The backup directory already exists, cannot coninute')
-    sys.exit(301)
+    sys.exit(201)
 
   shutil.copyfile('/etc/network/interfaces', '%s/interfaces' % backupDir)
 
@@ -894,7 +894,7 @@ https://github.com/sivel/bonding"""
   elif options.unattend:
     if not options.bond or not options.iface or not options.ip or not options.netmask:
       print 'You must supply a bond interface name, slave interfaces, IP Address and netmask'
-      sys.exit(200)
+      sys.exit(2)
 
     if not options.mode:
       options.mode = '1'

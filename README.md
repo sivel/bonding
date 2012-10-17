@@ -61,6 +61,39 @@ Usage
                            default: none
         --mode=MODE        The bonding mode to be used. default: active-backup
 
+Exit Codes
+----------
+
+### Generic
+
+    1: Generic Error
+
+### Automated
+
+    100: There are no interfaces that contain the default route
+    101: The gateway device is already a master/bonded interface
+    102: There is no IP Address configured on the device containing the default route.
+    103: There is no Network Mask configured on the device containing the default route.
+    104: Automated bonding will only work when there are exactly 2 peer interfaces, more than 2 found.
+    105: Interface is already part of a bond
+
+### Unattended
+
+    200: Not all options provided for an unattended configuration 
+
+### OS Independent	
+
+    300: OS Unsupported
+    301: Backup directory already exists
+
+### Red Hat
+
+    400: Red Hat Network Manager enabled
+
+### Debian
+
+    500: Debian ifenslave package is not installed or cannot be located
+
 Bugs
 ----
 

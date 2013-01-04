@@ -281,10 +281,13 @@ def peers(quiet = True):
       # Try sending and receiving 3 times to give us better chances of catching the send
       # Generally we always catch on the first time
       for i in xrange(0, 3):
-        s1.sendall('%s%s%s%s' % (dstMac, srcMac, frameType, payload))
+        try:
+          s1.sendall('%s%s%s%s' % (dstMac, srcMac, frameType, payload))
+        except (socket.timeout, socket.error):
+          continue
         try:
           data = s2.recv(60)
-        except socket.timeout:
+        except (socket.timeout, socket.error):
           continue
         recvFrameType = data[12:14]
         recvPayload = data[14:]

@@ -15,7 +15,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import fcntl, socket, struct, IN, string, array, os, sys, re, platform, time, shutil, syslog
+import fcntl
+import socket
+import struct
+import IN
+import string
+import array
+import os
+import sys
+import re
+import platform
+import time
+import shutil
+import syslog
 from optparse import OptionParser, OptionGroup
 from distutils.version import LooseVersion
 

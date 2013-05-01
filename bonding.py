@@ -872,7 +872,7 @@ iface %s %s
 
   syslog.syslog('Writing /etc/modprobe.d/bonding.conf')
   mfh = open('/etc/modprobe.d/bonding.conf', 'a+')
-  mfh.write('alias %s bonding\n' % bondInfo['master'])
+  mfh.write('alias netdev-%s bonding\n' % bondInfo['master'])
   mfh.close()
 
   syslog.syslog('Bonding configuration has completed')

@@ -155,6 +155,12 @@ def get_iface_list():
     fields = line.strip().split()
     if ':' in fields[0]:
       iface = fields[0].split(':')
+      if iface[0].startswith('__tmp'):
+          print ('An interface starting with "__tmp" (%s) was encountered.\n'
+                 'This is usually the indication of an issue with the '
+                 'network interface configurations on this server.\n\n'
+                 'This script cannot safely continue.')
+          sys.exit(204)
       ifaces.append(iface[0])
   return sorted(ifaces)
 

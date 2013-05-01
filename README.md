@@ -84,6 +84,7 @@ Exit Codes
     201: Backup directory already exists
     202: Red Hat Network Manager enabled
     203: Debian ifenslave package is not installed or cannot be located
+    204: Interface(s) starting with __tmp exist, indicative of misconfigured network interfaces
 
 Bugs
 ----

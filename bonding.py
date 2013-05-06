@@ -159,7 +159,7 @@ def get_iface_list():
           print ('An interface starting with "__tmp" (%s) was encountered.\n'
                  'This is usually the indication of an issue with the '
                  'network interface configurations on this server.\n\n'
-                 'This script cannot safely continue.')
+                 'This script cannot safely continue.') % iface[0]
           sys.exit(204)
       ifaces.append(iface[0])
   return sorted(ifaces)

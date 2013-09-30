@@ -19,11 +19,9 @@ import fcntl
 import socket
 import struct
 import IN
-import string
 import array
 import os
 import sys
-import re
 import platform
 import time
 import shutil

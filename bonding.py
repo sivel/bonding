@@ -254,7 +254,11 @@ def peers(quiet = True):
       sys.stdout.write('.')
       sys.stdout.flush()
     syslog.syslog('Enabling interface %s' % iface)
-    set_iface_flag(iface, IFF_UP)
+    try:
+      set_iface_flag(iface, IFF_UP)
+    except IOError as e:
+      raise SystemExit('%s %s. This generally indicates a misconfigured '
+                       'interface' % (e, iface))
 
   if not quiet:
     print '\nSleeping 5 seconds for switch port negotiation...'

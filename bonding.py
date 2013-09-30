@@ -175,7 +175,7 @@ def get_slave_iface_list(ifname):
     if is_iface_master(ifname):
       bond = open('/sys/class/net/%s/bonding/slaves' % ifname).read()
       return bond.split()
-  except IOErrror:
+  except IOError:
     return False
 
 def is_iface_slave(ifname):

@@ -256,7 +256,7 @@ def peers(quiet = True):
     syslog.syslog('Enabling interface %s' % iface)
     try:
       set_iface_flag(iface, IFF_UP)
-    except IOError as e:
+    except IOError, e:
       raise SystemExit('%s %s. This generally indicates a misconfigured '
                        'interface' % (e, iface))
 

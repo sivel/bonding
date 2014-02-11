@@ -340,7 +340,7 @@ def peers(quiet=True):
             s2.bind((recv_iface, 0))
             s2.settimeout(TIMEOUT)
 
-            # Place current reciving interface into permiscuous mode
+            # Place current receiving interface into promiscuous mode
             current_flags = 0
             ifreq = fcntl.ioctl(s2.fileno(), SIOCGIFFLAGS,
                                 struct.pack('256s', recv_iface[:15]))
@@ -371,7 +371,7 @@ def peers(quiet=True):
                     secondaries.append(recv_iface)
                     break
 
-            # Take the receiving interface out of permiscuous mode
+            # Take the receiving interface out of promiscuous mode
             current_flags ^= IFF_PROMISC
             ifreq = struct.pack('4s12xH', recv_iface, current_flags)
             fcntl.ioctl(s1.fileno(), SIOCSIFFLAGS, ifreq)
@@ -539,12 +539,12 @@ def collect_bond_info(groups, distro):
             sys.exit(0)
 
     bond = defaults('What is the name of the bond interface you are '
-                    'confguring?', 'bond%s' % bond_range[0])
+                    'configuring?', 'bond%s' % bond_range[0])
     if bond in ifaces and is_iface_master(bond) and get_slave_iface_list(bond):
         del bond_range[bond_range.index(int(bond.replace('bond', '')))]
         bond = defaults('%s%s is already configured as a master interface.%s\n'
                         'What is the name of the bond interface you are '
-                        'confguring?' % (RED, bond, RESET),
+                        'configuring?' % (RED, bond, RESET),
                         'bond%s' % bond_range[0])
         if (bond in ifaces and is_iface_master(bond) and
                 get_slave_iface_list(bond)):
@@ -777,7 +777,7 @@ def bond_rhel(version, distro, groups, bond_info):
         print ('%sThe backup directory already exists, to prevent overwriting '
                'required backup files, this script will exit.%s' %
                (RED, RESET))
-        syslog.syslog('The backup directory already exists, cannot coninute')
+        syslog.syslog('The backup directory already exists, cannot continue')
         sys.exit(201)
     for iface in bond_info['slaves'] + [bond_info['master']]:
         if os.path.exists('%s/ifcfg-%s' % (net_scripts, iface)):
@@ -895,7 +895,7 @@ def bond_deb(groups, bond_info):
         print ('%sThe backup directory already exists, to prevent overwriting '
                'required backup files, this script will exit.%s' %
                (RED, RESET))
-        syslog.syslog('The backup directory already exists, cannot coninute')
+        syslog.syslog('The backup directory already exists, cannot continue')
         sys.exit(201)
 
     shutil.copyfile('/etc/network/interfaces', '%s/interfaces' % backup_dir)
@@ -1014,9 +1014,9 @@ iface %s %s
         print ("\n%sAdditionally, be aware that networking will likely mark "
                "all slave interfaces as down if you use "
                "/etc/init.d/networking restart, you will have to ifdown and "
-               "then ifup each individually, this will require DRAC access "
-               "if the first bond has the default gateway.%s" %
-               (YELLOW, RESET))
+               "then ifup each individually, this will require Out-Of-Band "
+               "(DRAC/LOM) access if the first bond has the default gateway. "
+               "%s" % (YELLOW, RESET))
 
 
 def handle_args():

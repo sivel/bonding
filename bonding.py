@@ -1160,5 +1160,3 @@ def handle_args():
 
 if __name__ == '__main__':
     handle_args()
-
-# vim:ts=2:sw=2:expandtab

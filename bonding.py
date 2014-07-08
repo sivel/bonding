@@ -18,7 +18,6 @@
 import fcntl
 import socket
 import struct
-import IN
 import array
 import os
 import sys
@@ -40,6 +39,9 @@ WHITE = '\033[97m'
 CYAN = '\033[96m'
 PINK = '\033[95m'
 BLUE = '\033[94m'
+
+# asm/sockios.h
+SO_BINDTODEVICE = 25
 
 # Non DIX types (if_ether.h)
 ETH_P_ALL = 0x0003             # Every packet (be careful!!!)
@@ -319,7 +321,7 @@ def peers(quiet=True):
         # Set up the sending interface socket
         s1 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
                            socket.htons(ETH_P_ALL))
-        s1.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE, send_iface + '\0')
+        s1.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE, send_iface + '\0')
         s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s1.bind((send_iface, 0))
         s1.setblocking(0)
@@ -335,7 +337,7 @@ def peers(quiet=True):
             # Set up the receiving interface socket
             s2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
                                socket.htons(ETH_P_ALL))
-            s2.setsockopt(socket.SOL_SOCKET, IN.SO_BINDTODEVICE,
+            s2.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE,
                           recv_iface + '\0')
             s2.bind((recv_iface, 0))
             s2.settimeout(TIMEOUT)

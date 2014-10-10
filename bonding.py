@@ -306,19 +306,19 @@ def peers(quiet=True):
             continue
 
         # The data required for building the frame
-        ## Static data for frame payload that includes the sending interface
+        # Static data for frame payload that includes the sending interface
         static = 'IF%sIF' % send_iface
-        ## Build the rest of the payload using random data
+        # Build the rest of the payload using random data
         payload = '%s%s' % (static, os.urandom(46 - len(static)))
-        ## Broadcast FF:FF:FF:FF:FF:FF
+        # Broadcast FF:FF:FF:FF:FF:FF
         dst_mac = '\xff\xff\xff\xff\xff\xff'
         if USEREALSRCMAC:
-            ## The real MAC address of the sending interface
+            # The real MAC address of the sending interface
             src_mac = get_mac_addr_raw(send_iface)
         else:
-            ## Invalid source MAC
+            # Invalid source MAC
             src_mac = '\x00\x00\x00\x00\x00\x00'
-        ## Unregistered EtherType, in this case for Interface Peer Discovery
+        # Unregistered EtherType, in this case for Interface Peer Discovery
         frame_type = '\x50\x44'
 
         # Set up the sending interface socket

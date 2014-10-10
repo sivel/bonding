@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright 2013 Matt Martz
+# Copyright 2013 Matt Martz <matt@sivel.net>
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,6 +27,9 @@ import shutil
 import syslog
 from optparse import OptionParser, OptionGroup
 from distutils.version import LooseVersion
+
+__version__ = '1.0.0'
+__author__ = 'Matt Martz'
 
 TIMEOUT = 0.05        # In seconds
 USEREALSRCMAC = True  # Use the real source MAC address or 00:00:00:00:00:00
@@ -1021,6 +1024,13 @@ iface %s %s
                "%s" % (YELLOW, RESET))
 
 
+def version():
+    """Print the version"""
+
+    print (__version__)
+    sys.exit(0)
+
+
 def handle_args():
     mode_map = {
         '0': 'balance-rr',
@@ -1050,6 +1060,8 @@ def handle_args():
                    '\nhttps://github.com/sivel/bonding' % dashes)
 
     parser = OptionParser(description=description, usage=usage)
+    parser.add_option('--version', action='store_true',
+                      help='Show the version number and exit')
 
     peers_group = OptionGroup(parser, 'Peers')
     peers_group.add_option('--onlypeers',
@@ -1098,6 +1110,9 @@ def handle_args():
     parser.add_option_group(unattend_group)
 
     (options, args) = parser.parse_args()
+
+    if options.version:
+        version()
 
     if options.automated:
         automated()

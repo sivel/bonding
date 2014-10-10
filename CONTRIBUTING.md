@@ -1,6 +1,6 @@
 # Pull Requests
 
-Pull requests should be made against the `working` branch.
+Pull requests should be made against the `devel` branch.
 
 # Coding Guidelines
 
@@ -12,4 +12,4 @@ Only modules included in the standard library are permitted for use in this appl
 
 # Testing
 
-Currently there are no unit tests, but they are planned.
+Currently there are no tests, but they are planned.

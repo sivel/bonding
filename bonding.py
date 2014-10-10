@@ -153,7 +153,7 @@ def set_iface_flag(ifname, flag, flags=None):
                             struct.pack('256s', ifname[:15]))
         (flags,) = struct.unpack('16xH', ifreq[:18])
     flags |= flag
-    ifreq = struct.pack('4s12xH', ifname, flags)
+    ifreq = struct.pack('16sH', ifname, flags)
     fcntl.ioctl(s.fileno(), SIOCSIFFLAGS, ifreq)
     s.close()
     return flags
@@ -348,7 +348,7 @@ def peers(quiet=True):
                                 struct.pack('256s', recv_iface[:15]))
             (current_flags,) = struct.unpack('16xH', ifreq[:18])
             current_flags |= IFF_PROMISC
-            ifreq = struct.pack('4s12xH', recv_iface, current_flags)
+            ifreq = struct.pack('16sH', recv_iface, current_flags)
             fcntl.ioctl(s2.fileno(), SIOCSIFFLAGS, ifreq)
 
             # Try sending and receiving 3 times to give us better chances of
@@ -375,7 +375,7 @@ def peers(quiet=True):
 
             # Take the receiving interface out of promiscuous mode
             current_flags ^= IFF_PROMISC
-            ifreq = struct.pack('4s12xH', recv_iface, current_flags)
+            ifreq = struct.pack('16sH', recv_iface, current_flags)
             fcntl.ioctl(s1.fileno(), SIOCSIFFLAGS, ifreq)
 
             s2.close()

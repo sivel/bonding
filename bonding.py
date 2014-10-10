@@ -1044,12 +1044,12 @@ def handle_args():
 
     modes = list(mode_map.keys()) + (mode_map.values())
 
-    usage = ('%prog [--nopeers]\n\n'
-             '%prog --onlypeers\n\n'
-             '%prog --automated\n\n'
-             '%prog --unattend --bond=BOND --ip=ADDR --netmask=MASK '
+    usage = ('\n  %prog [--nopeers]\n'
+             '  %prog --onlypeers\n'
+             '  %prog --automated\n'
+             '  %prog --unattend --bond=BOND --ip=ADDR --netmask=MASK '
              '--iface=IFACE1 \n'
-             '           --iface=IFACE2 [--iface=IFACE3 ...] '
+             '             --iface=IFACE2 [--iface=IFACE3 ...] '
              '[--gateway=GW] [--mode=MODE]')
 
     dashes = '-' * 78

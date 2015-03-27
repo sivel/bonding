@@ -22,19 +22,21 @@ Usage
 -----
 
     $ python bonding.py --help
-    usage: 
+    Usage: 
       bonding.py [--nopeers]
       bonding.py --onlypeers
       bonding.py --automated
-      bonding.py --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]
+      bonding.py --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 
+                 --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]
     
     A script used to configure bonding on Linux machines, and to determine which
     interface groups (peers) are available for bonding.
     ------------------------------------------------------------------------------
     https://github.com/sivel/bonding
     
-    options:
+    Options:
       -h, --help           show this help message and exit
+      --version            Show the version number and exit
     
       Peers:
         --onlypeers        Only run the peers portion of this utility, to identify
@@ -53,9 +55,9 @@ Usage
                            --unattend
         --netmask=NETMASK  The Netmask to use in the bond. Required when using
                            --unattend
-        --iface=IFACE      The interfaces to be used in the bond, specify
-                           multiiple times for multiple interfaces. Required when
-                           using --unattend
+        --iface=IFACE      The interfaces to be used in the bond, specify multiple
+                           times for multiple interfaces. Required when using
+                           --unattend
         --gateway=GATEWAY  The default gateway to use for the system, if this is
                            specified, the gateway and gateway dev will be updated.
                            default: none

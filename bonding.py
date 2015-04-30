@@ -46,9 +46,6 @@ BLUE = '\033[94m'
 # asm/sockios.h
 SO_BINDTODEVICE = 25
 
-# Non DIX types (if_ether.h)
-ETH_P_ALL = 0x0003             # Every packet (be careful!!!)
-
 # Socket configuration controls (sockios.h)
 SIOCGIFNAME = 0x8910           # get iface name
 SIOCGIFCONF = 0x8912           # get iface list
@@ -320,10 +317,11 @@ def peers(quiet=True):
             src_mac = '\x00\x00\x00\x00\x00\x00'
         # Unregistered EtherType, in this case for Interface Peer Discovery
         frame_type = '\x50\x44'
+        frame_type_int = int(frame_type.encode('hex'), base=16)
 
         # Set up the sending interface socket
         s1 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
-                           socket.htons(ETH_P_ALL))
+                           socket.htons(frame_type_int))
         s1.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE, send_iface + '\0')
         s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s1.bind((send_iface, 0))
@@ -339,7 +337,7 @@ def peers(quiet=True):
 
             # Set up the receiving interface socket
             s2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
-                               socket.htons(ETH_P_ALL))
+                               socket.htons(frame_type_int))
             s2.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE,
                           recv_iface + '\0')
             s2.bind((recv_iface, 0))

@@ -260,7 +260,7 @@ def defaults(prompt, default):
         sys.exit(0)
 
 
-def peers(quiet=True):
+def peers(quiet=True, peerswait=5):
     if os.geteuid() != 0:
         print ('%sroot privileges are needed to properly check for bonding '
                'peers. Skipping...%s' % (RED, RESET))
@@ -288,9 +288,11 @@ def peers(quiet=True):
             raise SystemExit('%s %s. This generally indicates a misconfigured '
                              'interface' % (e, iface))
 
+    peerswait = min(abs(peerswait), 90)
     if not quiet:
-        print '\nSleeping 5 seconds for switch port negotiation...'
-    time.sleep(5)
+        print ('\nSleeping %d second%s for switch port negotiation...' %
+               (peerswait, peerswait != 1 and "s" or ""))
+    time.sleep(peerswait)
 
     if not quiet:
         sys.stdout.write('Scanning')
@@ -396,7 +398,7 @@ def peers(quiet=True):
     return groups
 
 
-def automated():
+def automated(peerswait=5):
     syslog.openlog('bonding')
     syslog.syslog('Beginning an automated bonding configuration')
 
@@ -447,7 +449,7 @@ def automated():
         sys.exit(103)
 
     slaves = []
-    groups = peers()
+    groups = peers(peerswait=peerswait)
     for group in groups:
         if group == gateway_dev or gateway_dev in groups[group]:
             slaves = [group] + groups[group]
@@ -1071,6 +1073,10 @@ def handle_args():
     peers_group.add_option('--nopeers', help='Do not run the peers portion of '
                                              'this utility',
                            action='store_true')
+    peers_group.add_option('--peerswait', help='The number of seconds to wait '
+                                               'for switch port negotiation. '
+                                               'Default 5',
+                           type=int, metavar="SECS", default=5)
     parser.add_option_group(peers_group)
 
     unattend_group = OptionGroup(parser, 'Unattended')
@@ -1115,7 +1121,7 @@ def handle_args():
         version()
 
     if options.automated:
-        automated()
+        automated(options.peerswait)
         sys.exit(0)
     elif options.unattend:
         if (not options.bond or not options.iface or
@@ -1147,7 +1153,7 @@ def handle_args():
         do_bond({}, bond_info)
         sys.exit(0)
     elif options.onlypeers:
-        groups = peers(False)
+        groups = peers(False, options.peerswait)
         if groups:
             print 'Interface Groups:'
             for iface in sorted(groups.keys()):
@@ -1159,7 +1165,7 @@ def handle_args():
         groups = {}
         if not options.nopeers:
             print 'Scanning for bonding peers...'
-            groups = peers(False)
+            groups = peers(False, options.peerswait)
             if groups:
                 print '%sInterface Groups:' % GREEN
                 for iface in sorted(groups.keys()):

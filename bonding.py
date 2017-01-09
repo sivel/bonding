@@ -27,6 +27,8 @@ import shutil
 import syslog
 from optparse import OptionParser, OptionGroup
 from distutils.version import LooseVersion
+import subprocess
+from pipes import quote
 
 __version__ = '1.0.0'
 __author__ = 'Matt Martz'
@@ -45,9 +47,6 @@ BLUE = '\033[94m'
 
 # asm/sockios.h
 SO_BINDTODEVICE = 25
-
-# Non DIX types (if_ether.h)
-ETH_P_ALL = 0x0003             # Every packet (be careful!!!)
 
 # Socket configuration controls (sockios.h)
 SIOCGIFNAME = 0x8910           # get iface name
@@ -217,6 +216,17 @@ def get_network_mask(ifname):
     return get_network_addr(ifname, SIOCGIFNETMASK)
 
 
+def netmask_to_CIDR_prefix(netmask):
+    '''Calculate the CIDR prefix because sockios.h only
+       provides the netmask. Convert the netmask to binary
+       then count the 1s.'''
+    packed = socket.inet_aton(netmask)
+    # Unpack to network byte order
+    netmask_as_int = struct.unpack('!I', packed)[0]
+    prefix = bin(netmask_as_int).count("1")
+    return prefix
+
+
 def get_ip_address(ifname):
     return get_network_addr(ifname, SIOCGIFADDR)
 
@@ -260,7 +270,7 @@ def defaults(prompt, default):
         sys.exit(0)
 
 
-def peers(quiet=True):
+def peers(quiet=True, peerswait=5):
     if os.geteuid() != 0:
         print ('%sroot privileges are needed to properly check for bonding '
                'peers. Skipping...%s' % (RED, RESET))
@@ -288,9 +298,11 @@ def peers(quiet=True):
             raise SystemExit('%s %s. This generally indicates a misconfigured '
                              'interface' % (e, iface))
 
+    peerswait = min(abs(peerswait), 90)
     if not quiet:
-        print '\nSleeping 5 seconds for switch port negotiation...'
-    time.sleep(5)
+        print ('\nSleeping %d second%s for switch port negotiation...' %
+               (peerswait, peerswait != 1 and "s" or ""))
+    time.sleep(peerswait)
 
     if not quiet:
         sys.stdout.write('Scanning')
@@ -320,10 +332,11 @@ def peers(quiet=True):
             src_mac = '\x00\x00\x00\x00\x00\x00'
         # Unregistered EtherType, in this case for Interface Peer Discovery
         frame_type = '\x50\x44'
+        frame_type_int = int(frame_type.encode('hex'), base=16)
 
         # Set up the sending interface socket
         s1 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
-                           socket.htons(ETH_P_ALL))
+                           socket.htons(frame_type_int))
         s1.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE, send_iface + '\0')
         s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s1.bind((send_iface, 0))
@@ -339,7 +352,7 @@ def peers(quiet=True):
 
             # Set up the receiving interface socket
             s2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
-                               socket.htons(ETH_P_ALL))
+                               socket.htons(frame_type_int))
             s2.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE,
                           recv_iface + '\0')
             s2.bind((recv_iface, 0))
@@ -396,7 +409,7 @@ def peers(quiet=True):
     return groups
 
 
-def automated():
+def automated(peerswait=5):
     syslog.openlog('bonding')
     syslog.syslog('Beginning an automated bonding configuration')
 
@@ -447,7 +460,7 @@ def automated():
         sys.exit(103)
 
     slaves = []
-    groups = peers()
+    groups = peers(peerswait=peerswait)
     for group in groups:
         if group == gateway_dev or gateway_dev in groups[group]:
             slaves = [group] + groups[group]
@@ -716,7 +729,11 @@ def do_bond(groups={}, bond_info={}):
     distro = dist[0].lower()
     version = dist[1]
     did_bonding = False
-    if ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '5') or
+    if ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '7') or
+            (distro in ['fedora'] and LooseVersion(version) >= '20')):
+        bond_nmcli(groups, bond_info)
+        did_bonding = True
+    elif ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '5') or
             (distro in ['fedora'] and LooseVersion(version) >= '10')):
         bond_rhel(version, distro, groups, bond_info)
         did_bonding = True
@@ -1024,6 +1041,139 @@ iface %s %s
                "%s" % (YELLOW, RESET))
 
 
+def bond_nmcli(groups, bond_info):
+    syslog.openlog('bonding')
+    syslog.syslog('Bonding configuration started')
+
+    if not os.path.exists('/bin/nmcli'):
+        print ('%sThe NetworkManager package must be installed for '
+               'nmcli bonding to work%s' % (RED, RESET))
+        syslog.syslog('/bin/nmcli is missing, cannot continue')
+        sys.exit(301)
+
+    provided_bond_info = True
+    if not bond_info:
+        provided_bond_info = False
+
+    if not bond_info:
+        bond_info = collect_bond_info(groups, 'redhat')
+        syslog.syslog('Interactively collecting bonding configuration')
+    else:
+        syslog.syslog('Bonding configuration supplied for an unattended '
+                      'or automated run')
+
+    date = time.strftime('%Y-%m-%d')
+    net_scripts = '/etc/sysconfig/network-scripts'
+    backup_dir = '%s/%s-bak-%s' % (net_scripts, bond_info['master'], date)
+
+    syslog.syslog('Backing up configuration files before modification to %s' %
+                  backup_dir)
+    if not provided_bond_info:
+        print 'Backing up existing ifcfg files to %s' % backup_dir
+    if not os.path.isdir(backup_dir):
+        os.mkdir(backup_dir, 0755)
+    else:
+        print ('%sThe backup directory already exists, to prevent overwriting '
+               'required backup files, this script will exit.%s' %
+               (RED, RESET))
+        syslog.syslog('The backup directory already exists, cannot continue')
+        sys.exit(302)
+    for iface in bond_info['slaves'] + [bond_info['master']]:
+        if os.path.exists('%s/ifcfg-%s' % (net_scripts, iface)):
+            shutil.copy('%s/ifcfg-%s' % (net_scripts, iface), backup_dir)
+
+    if not provided_bond_info:
+        print 'Configuring bonding...'
+
+    syslog.syslog('Adding bond interface %s' % bond_info['master'])
+    cmd = ("nmcli connection add "
+           "type bond "
+           "ifname %(master)s "
+           "con-name %(master)s "
+           "autoconnect yes "
+           "save yes "
+           "mode %(mode)s "
+           "miimon 100 "
+           % bond_info)
+    run_command(cmd)
+
+    if bond_info['gateway']:
+        syslog.syslog("Setting high priority on %s to keep it as the "
+                      "default route" % bond_info['master'])
+        cmd = ("nmcli connection modify %(master)s "
+               "connection.autoconnect-priority 99 "
+               "ipv6.method link-local "
+               % bond_info)
+        run_command(cmd)
+
+    syslog.syslog('Configuring bond interface %s' % bond_info['master'])
+    prefix = netmask_to_CIDR_prefix(bond_info['netmask'])
+    cmd = ("nmcli connection modify %(master)s "
+           "ipv4.method manual "
+           "ipv4.addresses %(ipaddr)s/%(prefix)s "
+           % dict({"prefix": prefix}, **bond_info))
+    if bond_info['gateway']:
+        cmd += "ipv4.gateway %(gateway)s " % bond_info
+        cmd += "ipv4.never-default no "
+    else:
+        cmd += "ipv4.never-default yes "
+    run_command(cmd)
+
+    # Remove and add each slave interface
+    syslog.syslog("Removing and adding %s slave interfaces %s" % (
+                  bond_info['master'],
+                  ["%s" % i for i in bond_info['slaves']]))
+    for slave in bond_info['slaves']:
+        d = dict({"slave": slave}, **bond_info)
+        # Ignore errors for the slave interface that is down.
+        run_command("nmcli connection delete %(slave)s" % d,
+                    ignore_error=True)
+        cmd = ("nmcli connection add "
+               "type bond-slave "
+               "ifname %(slave)s "
+               "con-name %(slave)s "
+               "autoconnect yes "
+               "save yes "
+               "master %(master)s "
+               % d)
+        run_command(cmd)
+
+    if bond_info['gateway']:
+        # Update /etc/sysconfig/network if it exists.
+        if os.access('/etc/sysconfig/network', os.W_OK):
+            shutil.copy('/etc/sysconfig/network', backup_dir)
+            syslog.syslog('Writing /etc/sysconfig/network')
+            nfh = open('/etc/sysconfig/network')
+            net_cfg = nfh.readlines()
+            nfh.close()
+
+            new_net_cfg = ''
+            for line in net_cfg:
+                if line.startswith('GATEWAYDEV='):
+                    new_net_cfg += 'GATEWAYDEV=%s\n' % bond_info['master']
+                elif line.startswith('GATEWAY='):
+                    new_net_cfg += 'GATEWAY=%s\n' % bond_info['gateway']
+                else:
+                    new_net_cfg += line
+
+            nfh = open('/etc/sysconfig/network', 'w+')
+            nfh.write(new_net_cfg)
+            nfh.close()
+
+    syslog.syslog('Bonding configuration has completed')
+
+
+def run_command(unsanitized_cmd, ignore_error=False):
+    cmd = [quote(word) for word in unsanitized_cmd.split()]
+    ret = subprocess.call(cmd,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,)
+    if ret != 0 and not ignore_error:
+        print "%sError: command failed:%s %s" % (RED, RESET, " ".join(cmd))
+        sys.exit(ret)
+    return ret
+
+
 def version():
     """Print the version"""
 
@@ -1071,6 +1221,10 @@ def handle_args():
     peers_group.add_option('--nopeers', help='Do not run the peers portion of '
                                              'this utility',
                            action='store_true')
+    peers_group.add_option('--peerswait', help='The number of seconds to wait '
+                                               'for switch port negotiation. '
+                                               'Default 5',
+                           type=int, metavar="SECS", default=5)
     parser.add_option_group(peers_group)
 
     unattend_group = OptionGroup(parser, 'Unattended')
@@ -1115,7 +1269,7 @@ def handle_args():
         version()
 
     if options.automated:
-        automated()
+        automated(options.peerswait)
         sys.exit(0)
     elif options.unattend:
         if (not options.bond or not options.iface or
@@ -1147,7 +1301,7 @@ def handle_args():
         do_bond({}, bond_info)
         sys.exit(0)
     elif options.onlypeers:
-        groups = peers(False)
+        groups = peers(False, options.peerswait)
         if groups:
             print 'Interface Groups:'
             for iface in sorted(groups.keys()):
@@ -1159,11 +1313,12 @@ def handle_args():
         groups = {}
         if not options.nopeers:
             print 'Scanning for bonding peers...'
-            groups = peers(False)
+            groups = peers(False, options.peerswait)
             if groups:
                 print '%sInterface Groups:' % GREEN
                 for iface in sorted(groups.keys()):
                     print ' '.join(sorted(groups[iface] + [iface]))
+                print "%s" % RESET
             else:
                 result = confirm('%sNo interface groups exist, do you want '
                                  'to continue?%s' % (RED, RESET), False)

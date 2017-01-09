@@ -22,27 +22,29 @@ Usage
 -----
 
     $ python bonding.py --help
-    Usage: 
+    Usage:
       bonding.py [--nopeers]
       bonding.py --onlypeers
       bonding.py --automated
       bonding.py --unattend --bond=BOND --ip=ADDR --netmask=MASK --iface=IFACE1 
                  --iface=IFACE2 [--iface=IFACE3 ...] [--gateway=GW] [--mode=MODE]
-    
+
     A script used to configure bonding on Linux machines, and to determine which
     interface groups (peers) are available for bonding.
     ------------------------------------------------------------------------------
     https://github.com/sivel/bonding
-    
+
     Options:
       -h, --help           show this help message and exit
       --version            Show the version number and exit
-    
+
       Peers:
         --onlypeers        Only run the peers portion of this utility, to identify
                            bonded peer interfaces
         --nopeers          Do not run the peers portion of this utility
-    
+        --peerswait=SECS   The number of seconds to wait for switch port
+                           negotiation. Default 5
+
       Unattended:
         --automated        Whether to run this command automated, this is
                            different from unattended which requires information

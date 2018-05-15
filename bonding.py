@@ -729,11 +729,13 @@ def do_bond(groups={}, bond_info={}):
     distro = dist[0].lower()
     version = dist[1]
     did_bonding = False
-    if ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '7') or
+    if ((distro in ['redhat', 'centos', 'oracle'] and
+            LooseVersion(version) >= '7') or
             (distro in ['fedora'] and LooseVersion(version) >= '20')):
         bond_nmcli(groups, bond_info)
         did_bonding = True
-    elif ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '5') or
+    elif ((distro in ['redhat', 'centos', 'oracle'] and
+            LooseVersion(version) >= '5') or
             (distro in ['fedora'] and LooseVersion(version) >= '10')):
         bond_rhel(version, distro, groups, bond_info)
         did_bonding = True
@@ -768,7 +770,8 @@ def bond_rhel(version, distro, groups, bond_info):
                       'or automated run')
 
     has_nm = False
-    if ((LooseVersion(version) >= '6' and distro in ['redhat', 'centos']) or
+    if ((LooseVersion(version) >= '6' and
+            distro in ['redhat', 'centos', 'oracle']) or
             distro == 'fedora'):
         has_nm = True
         syslog.syslog('This OS was identified as including NetworkManager')

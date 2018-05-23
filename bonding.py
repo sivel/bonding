@@ -1085,6 +1085,28 @@ def bond_nmcli(groups, bond_info):
     if not provided_bond_info:
         print 'Configuring bonding...'
 
+    if bond_info['gateway']:
+        # Update /etc/sysconfig/network if it exists.
+        if os.access('/etc/sysconfig/network', os.W_OK):
+            shutil.copy('/etc/sysconfig/network', backup_dir)
+            syslog.syslog('Writing /etc/sysconfig/network')
+            nfh = open('/etc/sysconfig/network')
+            net_cfg = nfh.readlines()
+            nfh.close()
+
+            new_net_cfg = ''
+            for line in net_cfg:
+                if line.startswith('GATEWAYDEV='):
+                    new_net_cfg += 'GATEWAYDEV=%s\n' % bond_info['master']
+                elif line.startswith('GATEWAY='):
+                    new_net_cfg += 'GATEWAY=%s\n' % bond_info['gateway']
+                else:
+                    new_net_cfg += line
+
+            nfh = open('/etc/sysconfig/network', 'w+')
+            nfh.write(new_net_cfg)
+            nfh.close()
+
     syslog.syslog('Adding bond interface %s' % bond_info['master'])
     cmd = ("nmcli connection add "
            "type bond "
@@ -1137,28 +1159,6 @@ def bond_nmcli(groups, bond_info):
                "master %(master)s "
                % d)
         run_command(cmd)
-
-    if bond_info['gateway']:
-        # Update /etc/sysconfig/network if it exists.
-        if os.access('/etc/sysconfig/network', os.W_OK):
-            shutil.copy('/etc/sysconfig/network', backup_dir)
-            syslog.syslog('Writing /etc/sysconfig/network')
-            nfh = open('/etc/sysconfig/network')
-            net_cfg = nfh.readlines()
-            nfh.close()
-
-            new_net_cfg = ''
-            for line in net_cfg:
-                if line.startswith('GATEWAYDEV='):
-                    new_net_cfg += 'GATEWAYDEV=%s\n' % bond_info['master']
-                elif line.startswith('GATEWAY='):
-                    new_net_cfg += 'GATEWAY=%s\n' % bond_info['gateway']
-                else:
-                    new_net_cfg += line
-
-            nfh = open('/etc/sysconfig/network', 'w+')
-            nfh.write(new_net_cfg)
-            nfh.close()
 
     syslog.syslog('Bonding configuration has completed')
 

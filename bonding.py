@@ -30,7 +30,7 @@ from distutils.version import LooseVersion
 import subprocess
 from pipes import quote
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 __author__ = 'Matt Martz'
 
 TIMEOUT = 0.05        # In seconds
@@ -729,11 +729,13 @@ def do_bond(groups={}, bond_info={}):
     distro = dist[0].lower()
     version = dist[1]
     did_bonding = False
-    if ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '7') or
+    if ((distro in ['redhat', 'centos', 'oracle'] and
+            LooseVersion(version) >= '7') or
             (distro in ['fedora'] and LooseVersion(version) >= '20')):
         bond_nmcli(groups, bond_info)
         did_bonding = True
-    elif ((distro in ['redhat', 'centos'] and LooseVersion(version) >= '5') or
+    elif ((distro in ['redhat', 'centos', 'oracle'] and
+            LooseVersion(version) >= '5') or
             (distro in ['fedora'] and LooseVersion(version) >= '10')):
         bond_rhel(version, distro, groups, bond_info)
         did_bonding = True
@@ -768,7 +770,8 @@ def bond_rhel(version, distro, groups, bond_info):
                       'or automated run')
 
     has_nm = False
-    if ((LooseVersion(version) >= '6' and distro in ['redhat', 'centos']) or
+    if ((LooseVersion(version) >= '6' and
+            distro in ['redhat', 'centos', 'oracle']) or
             distro == 'fedora'):
         has_nm = True
         syslog.syslog('This OS was identified as including NetworkManager')
@@ -1085,6 +1088,28 @@ def bond_nmcli(groups, bond_info):
     if not provided_bond_info:
         print 'Configuring bonding...'
 
+    if bond_info['gateway']:
+        # Update /etc/sysconfig/network if it exists.
+        if os.access('/etc/sysconfig/network', os.W_OK):
+            shutil.copy('/etc/sysconfig/network', backup_dir)
+            syslog.syslog('Writing /etc/sysconfig/network')
+            nfh = open('/etc/sysconfig/network')
+            net_cfg = nfh.readlines()
+            nfh.close()
+
+            new_net_cfg = ''
+            for line in net_cfg:
+                if line.startswith('GATEWAYDEV='):
+                    new_net_cfg += 'GATEWAYDEV=%s\n' % bond_info['master']
+                elif line.startswith('GATEWAY='):
+                    new_net_cfg += 'GATEWAY=%s\n' % bond_info['gateway']
+                else:
+                    new_net_cfg += line
+
+            nfh = open('/etc/sysconfig/network', 'w+')
+            nfh.write(new_net_cfg)
+            nfh.close()
+
     syslog.syslog('Adding bond interface %s' % bond_info['master'])
     cmd = ("nmcli connection add "
            "type bond "
@@ -1137,28 +1162,6 @@ def bond_nmcli(groups, bond_info):
                "master %(master)s "
                % d)
         run_command(cmd)
-
-    if bond_info['gateway']:
-        # Update /etc/sysconfig/network if it exists.
-        if os.access('/etc/sysconfig/network', os.W_OK):
-            shutil.copy('/etc/sysconfig/network', backup_dir)
-            syslog.syslog('Writing /etc/sysconfig/network')
-            nfh = open('/etc/sysconfig/network')
-            net_cfg = nfh.readlines()
-            nfh.close()
-
-            new_net_cfg = ''
-            for line in net_cfg:
-                if line.startswith('GATEWAYDEV='):
-                    new_net_cfg += 'GATEWAYDEV=%s\n' % bond_info['master']
-                elif line.startswith('GATEWAY='):
-                    new_net_cfg += 'GATEWAY=%s\n' % bond_info['gateway']
-                else:
-                    new_net_cfg += line
-
-            nfh = open('/etc/sysconfig/network', 'w+')
-            nfh.write(new_net_cfg)
-            nfh.close()
 
     syslog.syslog('Bonding configuration has completed')
 

@@ -1,0 +1,102 @@
+Vagrant.configure("2") do |config|
+  # NOTE: Each private_network interface needs an IP address defined
+  #       even with `auto_config: false`. The eth2 IP is unused.
+
+  # CentOS 7
+  config.vm.define "centos7" do |centos7|
+    centos7.vm.box = "centos/7"
+    centos7.vm.hostname = "bond-centos7"
+    centos7.vm.provider "virtualbox" do |v|
+      v.name = "bond-centos7"
+    end
+
+    centos7.vm.network "private_network", ip: "10.10.10.10",
+                       auto_config: false
+    centos7.vm.network "private_network", ip: "10.10.10.11",
+                       auto_config: false
+
+    centos7.vm.provision "file", source: "../bonding.py",
+                         destination: "$HOME/bonding.py"
+
+    centos7.vm.provision "shell" do |test|
+      test.path = "test_bonding.sh"
+      test.args = "centos7 bond1 10.10.10.10 eth1 eth2"
+    end
+  end
+
+
+  # CentOS 6
+  config.vm.define "centos6" do |centos6|
+    centos6.vm.box = "centos/6"
+    centos6.vm.hostname = "bond-centos6"
+    centos6.vm.provider "virtualbox" do |v|
+      v.name = "bond-centos6"
+    end
+
+    centos6.vm.network "private_network", ip: "10.10.10.12",
+                       auto_config: false
+    centos6.vm.network "private_network", ip: "10.10.10.13",
+                       auto_config: false
+
+    centos6.vm.provision "file", source: "../bonding.py",
+                         destination: "$HOME/bonding.py"
+
+    centos6.vm.provision "shell" do |test|
+      test.path = "test_bonding.sh"
+      test.args = "centos6 bond1 10.10.10.12 eth1 eth2"
+    end
+  end
+
+
+  # Ubuntu 18
+  config.vm.define "ubuntu18" do |ubuntu18|
+    ubuntu18.vm.box = "ubuntu/bionic64"
+    ubuntu18.vm.hostname = "bond-ubuntu18"
+    ubuntu18.vm.provider "virtualbox" do |v|
+      v.name = "bond-ubuntu18"
+      # Disable creating ubuntu-bionic-18.04-cloudimg-console.log
+      v.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+    end
+
+    ubuntu18.vm.network "private_network", ip: "10.10.10.14",
+                        auto_config: false
+    ubuntu18.vm.network "private_network", ip: "10.10.10.15",
+                        auto_config: false
+
+    ubuntu18.vm.provision "shell",
+                          inline: "apt install -y ifenslave"
+
+    ubuntu18.vm.provision "file", source: "../bonding.py",
+                          destination: "$HOME/bonding.py"
+
+    ubuntu18.vm.provision "shell" do |test|
+      test.path = "test_bonding.sh"
+      test.args = "ubuntu18 bond1 10.10.10.14 enp0s8 enp0s9"
+    end
+  end
+
+
+  # Ubuntu 16
+  config.vm.define "ubuntu16" do |ubuntu16|
+    ubuntu16.vm.box = "ubuntu/xenial64"
+    ubuntu16.vm.hostname = "bond-ubuntu16"
+    ubuntu16.vm.provider "virtualbox" do |v|
+      v.name = "bond-ubuntu16"
+      # Diable creating ubuntu-xenial-16.04-cloudimg-console.log
+      v.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+    end
+
+    ubuntu16.vm.network "private_network", ip: "10.10.10.16",
+                        auto_config: false
+    ubuntu16.vm.network "private_network", ip: "10.10.10.17",
+                        auto_config: false
+
+    ubuntu16.vm.provision "file", source: "../bonding.py",
+                          destination: "$HOME/bonding.py"
+
+    ubuntu16.vm.provision "shell" do |test|
+      test.path = "test_bonding.sh"
+      test.args = "ubuntu16 bond1 10.10.10.16 enp0s8 enp0s9"
+    end
+  end
+end

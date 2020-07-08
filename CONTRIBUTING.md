@@ -12,4 +12,18 @@ Only modules included in the standard library are permitted for use in this appl
 
 # Testing
 
-Currently there are no tests, but they are planned.
+Basic functional testing is done with `vagrant` and the VirtualBox provider.
+Every box should provision without error.
+```
+cd tests
+vagrant up
+vagrant destroy -f
+```
+
+The boxes are from official upsteam sources.
+To see a list of OSes run:
+```
+vagrant status
+```
+Boxes are named after their OS.
+To test a single OS just `vagrant up` its name.

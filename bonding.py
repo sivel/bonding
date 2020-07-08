@@ -842,7 +842,7 @@ HWADDR=%(hwaddr)s''' % dict(bond_info, slave=iface,
 
     syslog.syslog('Writing /etc/modprobe.d/bonding.conf')
     mfh = open('/etc/modprobe.d/bonding.conf', 'a+')
-    mfh.write('alias %s bonding\n' % bond_info['master'])
+    mfh.write('alias netdev-%s bonding\n' % bond_info['master'])
     mfh.close()
 
     if bond_info['gateway']:

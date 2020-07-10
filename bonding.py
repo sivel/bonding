@@ -15,6 +15,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import print_function
+try:
+    from builtins import input
+    from builtins import str
+    from builtins import range
+except ImportError:
+    input = raw_input    # noqa: F821
 import fcntl
 import socket
 import struct
@@ -168,11 +175,11 @@ def get_iface_list():
         if ':' in fields[0]:
             iface = fields[0].split(':')
             if iface[0].startswith('__tmp'):
-                print ('An interface starting with "__tmp" (%s) was '
+                print(('An interface starting with "__tmp" (%s) was '
                        'encountered.\nThis is usually the indication '
                        'of an issue with the network interface '
                        'configurations on this server.\n\n'
-                       'This script cannot safely continue.') % iface[0]
+                       'This script cannot safely continue.') % iface[0])
                 sys.exit(204)
             ifaces.append(iface[0])
     return sorted(ifaces)
@@ -242,38 +249,38 @@ def confirm(prompt=None, default=False):
 
     try:
         while True:
-            ans = raw_input(prompt)
+            ans = input(prompt)
             if not ans:
                 return default
             if ans not in ['y', 'Y', 'n', 'N']:
-                print 'please enter y or n.'
+                print('please enter y or n.')
                 continue
             if ans == 'y' or ans == 'Y':
                 return True
             if ans == 'n' or ans == 'N':
                 return False
     except KeyboardInterrupt:
-        print '\nExiting'
+        print('\nExiting')
         sys.exit(0)
 
 
 def defaults(prompt, default):
     prompt = '%s %s[%s]%s: ' % (prompt, PINK, default, RESET)
     try:
-        response = raw_input(prompt).strip()
+        response = input(prompt).strip()
         if response:
             return response
         else:
             return default
     except KeyboardInterrupt:
-        print '\nExiting'
+        print('\nExiting')
         sys.exit(0)
 
 
 def peers(quiet=True, peerswait=5):
     if os.geteuid() != 0:
-        print ('%sroot privileges are needed to properly check for bonding '
-               'peers. Skipping...%s' % (RED, RESET))
+        print('%sroot privileges are needed to properly check for bonding '
+              'peers. Skipping...%s' % (RED, RESET))
         return {}
 
     syslog.openlog('bonding')
@@ -294,14 +301,14 @@ def peers(quiet=True, peerswait=5):
         syslog.syslog('Enabling interface %s' % iface)
         try:
             set_iface_flag(iface, IFF_UP)
-        except IOError, e:
+        except IOError as e:
             raise SystemExit('%s %s. This generally indicates a misconfigured '
                              'interface' % (e, iface))
 
     peerswait = min(abs(peerswait), 90)
     if not quiet:
-        print ('\nSleeping %d second%s for switch port negotiation...' %
-               (peerswait, peerswait != 1 and "s" or ""))
+        print('\nSleeping %d second%s for switch port negotiation...' %
+              (peerswait, peerswait != 1 and "s" or ""))
     time.sleep(peerswait)
 
     if not quiet:
@@ -370,7 +377,7 @@ def peers(quiet=True, peerswait=5):
             # Try sending and receiving 3 times to give us better chances of
             # catching the send
             # Generally we always catch on the first time
-            for i in xrange(0, 3):
+            for i in range(0, 3):
                 try:
                     s1.sendall('%s%s%s%s' % (dst_mac, src_mac, frame_type,
                                              payload))
@@ -405,7 +412,7 @@ def peers(quiet=True, peerswait=5):
     syslog.syslog('Scan for bonding interface peers completed')
 
     if not quiet:
-        print 'Done'
+        print('Done')
     return groups
 
 
@@ -416,7 +423,7 @@ def automated(peerswait=5):
     mode = 'active-backup'
 
     ifaces = get_iface_list()
-    bond_range = range(0, 101)
+    bond_range = list(range(0, 101))
 
     masters = {}
     for iface in ifaces:
@@ -433,13 +440,13 @@ def automated(peerswait=5):
     gateway = get_default_gateway()
     if not gateway_dev or not gateway:
         msg = 'There are no interfaces that contain the default route.'
-        print msg
+        print(msg)
         syslog.syslog(msg)
         sys.exit(100)
 
     if 'bond' in gateway_dev or is_iface_master(gateway_dev):
         msg = 'The gateway device is already a master/bonded interface'
-        print msg
+        print(msg)
         syslog.syslog(msg)
         sys.exit(101)
 
@@ -447,7 +454,7 @@ def automated(peerswait=5):
     if not ipaddr:
         msg = ('There is no IP Address configured on the device containing '
                'the default route.')
-        print msg
+        print(msg)
         syslog.syslog(msg)
         sys.exit(102)
 
@@ -455,7 +462,7 @@ def automated(peerswait=5):
     if not netmask:
         msg = ('There is no Network Mask configured on the device containing '
                'the default route.')
-        print msg
+        print(msg)
         syslog.syslog(msg)
         sys.exit(103)
 
@@ -470,7 +477,7 @@ def automated(peerswait=5):
                'peer interfaces,\nthe first being the gateway device and '
                'another interface.\n Number of interfaces found: %s (%s)' %
                (len(slaves), ', '.join(slaves)))
-        print msg
+        print(msg)
         syslog.syslog(msg)
         sys.exit(104)
 
@@ -479,7 +486,7 @@ def automated(peerswait=5):
             if slave in masters[master]:
                 msg = ('%s is already part of a bond (%s)' %
                        (gateway_dev, master))
-                print msg
+                print(msg)
                 syslog.syslog(msg)
                 sys.exit(105)
 
@@ -512,44 +519,45 @@ def collect_bond_info(groups, distro):
             else:
                 bonds[iface] = []
 
-    bond_range = range(0, 101)
+    bond_range = list(range(0, 101))
     if bonds:
-        print ('%s\nThe following bonded interfaces are already '
-               'configured:\n' % YELLOW)
+        print('%s\nThe following bonded interfaces are already '
+              'configured:\n' % YELLOW)
         for bondIface in bonds:
-            print '%s' % bondIface
+            print('%s' % bondIface)
             bond_int = int(bondIface.replace('bond', ''))
             del bond_range[bond_range.index(bond_int)]
             for slave in bonds[bondIface]:
-                print '\t%s' % slave
+                print('\t%s' % slave)
     else:
-        print ('\n%sThere are no bonded interfaces currently present in the '
-               'running\nconfiguration on this server. This does not take '
-               'into account configuration\nthat have not yet been loaded '
-               'into the running configuration.''' % GREEN)
+        print('\n%sThere are no bonded interfaces currently present in the '
+              'running\nconfiguration on this server. This does not take '
+              'into account configuration\nthat have not yet been loaded '
+              'into the running configuration.''' % GREEN)
 
-    print '%s' % RESET
+    print('%s' % RESET)
 
     children = None
     if groups:
         selections = {}
-        print 'Interface groups available for configuration:\n'
+        print('Interface groups available for configuration:\n')
         i = 1
-        for key in reversed(groups.keys()):
+        for key in reversed(list(groups.keys())):
             group = [key] + groups[key]
-            print '%s%s) %s%s' % (PINK, i, ' '.join(sorted(group)), RESET)
+            print('%s%s) %s%s' % (PINK, i, ' '.join(sorted(group)), RESET))
             selections[str(i)] = group
             i += 1
 
         try:
-            response = raw_input('\nWhich numerical interface group from '
-                                 'above would you like to configure? '
-                                 '(leave blank or hit enter to perform '
-                                 'manual entry later) ').strip()
+            response = input('\nWhich numerical interface group from '
+                             'above would you like to configure? '
+                             '(leave blank or hit enter to perform '
+                             'manual entry later) ').strip()
             if not response:
                 children = None
             elif response not in selections:
-                print '%sInvalid selection. Can not continue.%s' % (RED, RESET)
+                print('%sInvalid selection. Can not continue.%s' % (RED,
+                                                                    RESET))
                 sys.exit(1)
             else:
                 children = selections[response]
@@ -566,12 +574,12 @@ def collect_bond_info(groups, distro):
                         'bond%s' % bond_range[0])
         if (bond in ifaces and is_iface_master(bond) and
                 get_slave_iface_list(bond)):
-            print ('%sA valid bond interface was not provided. Can not '
-                   'continue%s' % (RED, RESET))
+            print('%sA valid bond interface was not provided. Can not '
+                  'continue%s' % (RED, RESET))
             sys.exit(1)
 
-    print ('%sThe bonded interface will be named: %s%s%s\n' %
-           (GREEN, YELLOW, bond, RESET))
+    print('%sThe bonded interface will be named: %s%s%s\n' %
+          (GREEN, YELLOW, bond, RESET))
 
     mode_map = {
         '0': 'balance-rr',
@@ -592,8 +600,8 @@ def collect_bond_info(groups, distro):
                         'bonding mode do you want to use for %s?' %
                         (RED, ', '.join(modes), RESET, bond), 'active-backup')
         if mode not in modes:
-            print ('%sA valid bonding mode was not provided. Can not '
-                   'continue%s' % (RED, RESET))
+            print('%sA valid bonding mode was not provided. Can not '
+                  'continue%s' % (RED, RESET))
             sys.exit(1)
 
     extra_opts = ''
@@ -606,8 +614,8 @@ def collect_bond_info(groups, distro):
     if mode in mode_map:
         mode = mode_map[mode]
 
-    print ('%sThe bonded interface will use mode %s%s%s\n' %
-           (GREEN, YELLOW, mode, RESET))
+    print('%sThe bonded interface will use mode %s%s%s\n' %
+          (GREEN, YELLOW, mode, RESET))
 
     if not children:
         children = defaults('What are the interfaces that will be part of the '
@@ -615,21 +623,21 @@ def collect_bond_info(groups, distro):
         if children:
             children = children.split()
         else:
-            print ('%sYou did not provide any interfaces to be part of %s%s' %
-                   (RED, bond, RESET))
+            print('%sYou did not provide any interfaces to be part of %s%s' %
+                  (RED, bond, RESET))
             sys.exit(1)
 
     bail = False
     ip_addresses = {}
     for child in children:
         if child not in ifaces:
-            print ('%sYou provided an interface name that does not exist on '
-                   'this system: %s%s' % (RED, child, RESET))
+            print('%sYou provided an interface name that does not exist on '
+                  'this system: %s%s' % (RED, child, RESET))
             bail = True
         elif is_iface_slave(child):
-            print ('%sYou provided an interface name that is already part of '
-                   'an already configured bond (%s): %s%s' %
-                   (RED, all_slaves[child], child, RESET))
+            print('%sYou provided an interface name that is already part of '
+                  'an already configured bond (%s): %s%s' %
+                  (RED, all_slaves[child], child, RESET))
             bail = True
 
         ip_address = get_ip_address(child)
@@ -639,18 +647,18 @@ def collect_bond_info(groups, distro):
     if bail:
         sys.exit(1)
 
-    print '%sThe interfaces that will be used for %s%s%s will be: %s%s%s\n' % (
-        GREEN, YELLOW, bond, GREEN, YELLOW, ' '.join(children), RESET)
+    print('%sThe interfaces that will be used for %s%s%s will be: %s%s%s\n' % (
+          GREEN, YELLOW, bond, GREEN, YELLOW, ' '.join(children), RESET))
 
     if len(ip_addresses) > 1:
-        print '%sThe following IP addresses were found:' % YELLOW
+        print('%sThe following IP addresses were found:' % YELLOW)
         for addr in ip_addresses:
-            print '%s: %s' % (ip_addresses[addr], addr)
+            print('%s: %s' % (ip_addresses[addr], addr))
         ip_address = defaults('\n%sWhich of the above IP addresses do you '
                               'want to use for the primary IP for %s?' %
-                              (RESET, bond), ip_addresses.keys()[0])
+                              (RESET, bond), list(ip_addresses.keys())[0])
     else:
-        ip_address = ip_addresses.keys()
+        ip_address = list(ip_addresses.keys())
         if ip_address:
             ip_address = ip_address[0]
         else:
@@ -661,11 +669,11 @@ def collect_bond_info(groups, distro):
     try:
         socket.inet_aton(ip_address)
     except socket.error:
-        print '%s"%s" is not a valid IP address.%s' % (RED, ip_address, RESET)
+        print('%s"%s" is not a valid IP address.%s' % (RED, ip_address, RESET))
         sys.exit(1)
 
-    print '%sThe IP address that will be used for %s%s%s will be: %s%s%s\n' % (
-        GREEN, YELLOW, bond, GREEN, YELLOW, ip_address, RESET)
+    print('%sThe IP address that will be used for %s%s%s will be: %s%s%s\n' % (
+        GREEN, YELLOW, bond, GREEN, YELLOW, ip_address, RESET))
 
     netmask = None
     if ip_address in ip_addresses:
@@ -677,17 +685,17 @@ def collect_bond_info(groups, distro):
         netmask = defaults('What Network Mask do you want to use for %s?' %
                            bond, netmask)
 
-    print ('%sThe Network Mask that will be used for %s%s%s will be: '
-           '%s%s%s\n' % (GREEN, YELLOW, bond, GREEN, YELLOW, netmask, RESET))
+    print('%sThe Network Mask that will be used for %s%s%s will be: '
+          '%s%s%s\n' % (GREEN, YELLOW, bond, GREEN, YELLOW, netmask, RESET))
 
     gateway_dev = get_default_gateway_dev()
-    print ('%sCurrent default gateway details from the running '
-           'configuration:' % YELLOW)
-    print 'Gateway IP:  %s' % get_default_gateway()
-    print 'Gateway Dev: %s' % gateway_dev
-    print ('This does not take into account configurations that have not yet '
-           'been loaded into the running configuration.')
-    print '%s' % RESET
+    print('%sCurrent default gateway details from the running '
+          'configuration:' % YELLOW)
+    print('Gateway IP:  %s' % get_default_gateway())
+    print('Gateway Dev: %s' % gateway_dev)
+    print('This does not take into account configurations that have not yet '
+          'been loaded into the running configuration.')
+    print('%s' % RESET)
 
     change_gw_default_response = True
     if gateway_dev.startswith('bond'):
@@ -705,13 +713,13 @@ def collect_bond_info(groups, distro):
         else:
             gateway = defaults('%s accessible default gateway for this '
                                'system?' % bond, gateway)
-        print ('%sThe default gateway that will be used for %s%s%s will be: '
-               '%s%s%s\n' %
-               (GREEN, YELLOW, bond, GREEN, YELLOW, gateway, RESET))
+        print('%sThe default gateway that will be used for %s%s%s will be: '
+              '%s%s%s\n' %
+              (GREEN, YELLOW, bond, GREEN, YELLOW, gateway, RESET))
     else:
         gateway = False
-        print ('%sThe default gateway will %sNOT%s be changed for %s%s%s\n' %
-               (GREEN, YELLOW, GREEN, YELLOW, bond, RESET))
+        print('%sThe default gateway will %sNOT%s be changed for %s%s%s\n' %
+              (GREEN, YELLOW, GREEN, YELLOW, bond, RESET))
 
     return {
         'master': bond,
@@ -745,13 +753,13 @@ def do_bond(groups={}, bond_info={}):
         did_bonding = True
 
     if not did_bonding:
-        print ('\n%sThis bonding script does not support the OS that you are '
-               'attempting to configure bonding on.%s' % (RED, RESET))
+        print('\n%sThis bonding script does not support the OS that you are '
+              'attempting to configure bonding on.%s' % (RED, RESET))
         sys.exit(200)
 
     if not bond_info:
-        print ('\n%sBonding has been configured! The only thing left is to '
-               'restart networking.%s' % (GREEN, RESET))
+        print('\n%sBonding has been configured! The only thing left is to '
+              'restart networking.%s' % (GREEN, RESET))
 
 
 def bond_rhel(version, distro, groups, bond_info):
@@ -782,9 +790,9 @@ def bond_rhel(version, distro, groups, bond_info):
             pid_comm = '/proc/%s/comm' % pid
             if (os.path.exists(pid_comm) and
                     open(pid_comm).read().strip() == 'NetworkManager'):
-                print ('%sNetworkManager must be stopped and the network '
-                       'service started before you can run this script.%s' %
-                       (RED, RESET))
+                print('%sNetworkManager must be stopped and the network '
+                      'service started before you can run this script.%s' %
+                      (RED, RESET))
                 syslog.syslog('NetworkManager is running, cannot continue')
                 sys.exit(202)
 
@@ -795,13 +803,13 @@ def bond_rhel(version, distro, groups, bond_info):
     syslog.syslog('Backing up configuration files before modification to %s' %
                   backup_dir)
     if not provided_bond_info:
-        print 'Backing up existing ifcfg files to %s' % backup_dir
+        print('Backing up existing ifcfg files to %s' % backup_dir)
     if not os.path.isdir(backup_dir):
-        os.mkdir(backup_dir, 0755)
+        os.mkdir(backup_dir, 0o755)
     else:
-        print ('%sThe backup directory already exists, to prevent overwriting '
-               'required backup files, this script will exit.%s' %
-               (RED, RESET))
+        print('%sThe backup directory already exists, to prevent overwriting '
+              'required backup files, this script will exit.%s' %
+              (RED, RESET))
         syslog.syslog('The backup directory already exists, cannot continue')
         sys.exit(201)
     for iface in bond_info['slaves'] + [bond_info['master']]:
@@ -809,7 +817,7 @@ def bond_rhel(version, distro, groups, bond_info):
             shutil.move('%s/ifcfg-%s' % (net_scripts, iface), backup_dir)
 
     if not provided_bond_info:
-        print 'Configuring bonding...'
+        print('Configuring bonding...')
     syslog.syslog('Writing %s/ifcfg-%s' % (net_scripts, bond_info['master']))
     bfh = open('%s/ifcfg-%s' % (net_scripts, bond_info['master']), 'w')
     iface_cfg = '''DEVICE=%(master)s
@@ -894,8 +902,8 @@ def bond_deb(groups, bond_info):
         provided_bond_info = False
 
     if not os.path.exists('/sbin/ifenslave'):
-        print ('%sThe ifenslave package must be installed for '
-               'bonding to work%s' % (RED, RESET))
+        print('%sThe ifenslave package must be installed for '
+              'bonding to work%s' % (RED, RESET))
         syslog.syslog('/sbin/ifenslave is missing, cannot continue')
         sys.exit(203)
 
@@ -913,13 +921,13 @@ def bond_deb(groups, bond_info):
     syslog.syslog('Backing up configuration files before modification to %s' %
                   backup_dir)
     if not provided_bond_info:
-        print 'Backing up existing ifcfg files to %s' % backup_dir
+        print('Backing up existing ifcfg files to %s' % backup_dir)
     if not os.path.isdir(backup_dir):
-        os.mkdir(backup_dir, 0755)
+        os.mkdir(backup_dir, 0o755)
     else:
-        print ('%sThe backup directory already exists, to prevent overwriting '
-               'required backup files, this script will exit.%s' %
-               (RED, RESET))
+        print('%sThe backup directory already exists, to prevent overwriting '
+              'required backup files, this script will exit.%s' %
+              (RED, RESET))
         syslog.syslog('The backup directory already exists, cannot continue')
         sys.exit(201)
 
@@ -1006,7 +1014,7 @@ iface %(master)s inet static
         interfaces_cfg += """    gateway %s
 """ % bond_info['gateway']
 
-    for key in reversed(interfaces_dict.keys()):
+    for key in reversed(list(interfaces_dict.keys())):
         if key not in ['auto'] and key not in slaves:
             if key in interfaces_dict['auto']:
                 interfaces_cfg += """
@@ -1031,17 +1039,17 @@ iface %s %s
     syslog.syslog('Bonding configuration has completed')
 
     if not provided_bond_info:
-        print ('\n%sNOTE: After you restart networking you will also have to '
-               'manually remove the IP address used in the bond from the '
-               'interface that previously held it as debian/ubuntu will not '
-               'do this.%s' % (YELLOW, RESET))
+        print('\n%sNOTE: After you restart networking you will also have to '
+              'manually remove the IP address used in the bond from the '
+              'interface that previously held it as debian/ubuntu will not '
+              'do this.%s' % (YELLOW, RESET))
 
-        print ("\n%sAdditionally, be aware that networking will likely mark "
-               "all slave interfaces as down if you use "
-               "/etc/init.d/networking restart, you will have to ifdown and "
-               "then ifup each individually, this will require Out-Of-Band "
-               "(DRAC/LOM) access if the first bond has the default gateway. "
-               "%s" % (YELLOW, RESET))
+        print("\n%sAdditionally, be aware that networking will likely mark "
+              "all slave interfaces as down if you use "
+              "/etc/init.d/networking restart, you will have to ifdown and "
+              "then ifup each individually, this will require Out-Of-Band "
+              "(DRAC/LOM) access if the first bond has the default gateway. "
+              "%s" % (YELLOW, RESET))
 
 
 def bond_nmcli(groups, bond_info):
@@ -1049,8 +1057,8 @@ def bond_nmcli(groups, bond_info):
     syslog.syslog('Bonding configuration started')
 
     if not os.path.exists('/bin/nmcli'):
-        print ('%sThe NetworkManager package must be installed for '
-               'nmcli bonding to work%s' % (RED, RESET))
+        print('%sThe NetworkManager package must be installed for '
+              'nmcli bonding to work%s' % (RED, RESET))
         syslog.syslog('/bin/nmcli is missing, cannot continue')
         sys.exit(301)
 
@@ -1072,13 +1080,13 @@ def bond_nmcli(groups, bond_info):
     syslog.syslog('Backing up configuration files before modification to %s' %
                   backup_dir)
     if not provided_bond_info:
-        print 'Backing up existing ifcfg files to %s' % backup_dir
+        print('Backing up existing ifcfg files to %s' % backup_dir)
     if not os.path.isdir(backup_dir):
-        os.mkdir(backup_dir, 0755)
+        os.mkdir(backup_dir, 0o755)
     else:
-        print ('%sThe backup directory already exists, to prevent overwriting '
-               'required backup files, this script will exit.%s' %
-               (RED, RESET))
+        print('%sThe backup directory already exists, to prevent overwriting '
+              'required backup files, this script will exit.%s' %
+              (RED, RESET))
         syslog.syslog('The backup directory already exists, cannot continue')
         sys.exit(302)
     for iface in bond_info['slaves'] + [bond_info['master']]:
@@ -1086,7 +1094,7 @@ def bond_nmcli(groups, bond_info):
             shutil.copy('%s/ifcfg-%s' % (net_scripts, iface), backup_dir)
 
     if not provided_bond_info:
-        print 'Configuring bonding...'
+        print('Configuring bonding...')
 
     if bond_info['gateway']:
         # Update /etc/sysconfig/network if it exists.
@@ -1172,7 +1180,7 @@ def run_command(unsanitized_cmd, ignore_error=False):
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,)
     if ret != 0 and not ignore_error:
-        print "%sError: command failed:%s %s" % (RED, RESET, " ".join(cmd))
+        print("%sError: command failed:%s %s" % (RED, RESET, " ".join(cmd)))
         sys.exit(ret)
     return ret
 
@@ -1180,7 +1188,7 @@ def run_command(unsanitized_cmd, ignore_error=False):
 def version():
     """Print the version"""
 
-    print (__version__)
+    print(__version__)
     sys.exit(0)
 
 
@@ -1195,7 +1203,7 @@ def handle_args():
         '6': 'balance-alb',
     }
 
-    modes = list(mode_map.keys()) + (mode_map.values())
+    modes = list(mode_map.keys()) + (list(mode_map.values()))
 
     usage = ('\n  %prog [--nopeers]\n'
              '  %prog --onlypeers\n'
@@ -1277,8 +1285,8 @@ def handle_args():
     elif options.unattend:
         if (not options.bond or not options.iface or
                 not options.ip or not options.netmask):
-            print ('You must supply a bond interface name, slave interfaces, '
-                   'IP Address and netmask')
+            print('You must supply a bond interface name, slave interfaces, '
+                  'IP Address and netmask')
             sys.exit(2)
 
         if not options.mode:
@@ -1306,22 +1314,22 @@ def handle_args():
     elif options.onlypeers:
         groups = peers(False, options.peerswait)
         if groups:
-            print 'Interface Groups:'
+            print('Interface Groups:')
             for iface in sorted(groups.keys()):
-                print ' '.join(sorted(groups[iface] + [iface]))
+                print(' '.join(sorted(groups[iface] + [iface])))
         else:
-            print 'No interface groups exist'
+            print('No interface groups exist')
         sys.exit(0)
     elif not options.onlypeers:
         groups = {}
         if not options.nopeers:
-            print 'Scanning for bonding peers...'
+            print('Scanning for bonding peers...')
             groups = peers(False, options.peerswait)
             if groups:
-                print '%sInterface Groups:' % GREEN
+                print('%sInterface Groups:' % GREEN)
                 for iface in sorted(groups.keys()):
-                    print ' '.join(sorted(groups[iface] + [iface]))
-                print "%s" % RESET
+                    print(' '.join(sorted(groups[iface] + [iface])))
+                print("%s" % RESET)
             else:
                 result = confirm('%sNo interface groups exist, do you want '
                                  'to continue?%s' % (RED, RESET), False)

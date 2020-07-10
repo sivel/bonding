@@ -38,7 +38,7 @@ from distutils.version import LooseVersion
 import subprocess
 from pipes import quote
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 __author__ = 'Matt Martz'
 
 TIMEOUT = 0.05        # In seconds
@@ -290,6 +290,7 @@ def peers(quiet=True, peerswait=5):
         return {}
 
     syslog.openlog('bonding')
+    syslog.syslog('Running bonding %s' % __version__)
     syslog.syslog('Scanning for bonding interface peers')
 
     ifaces = get_iface_list()
@@ -439,6 +440,7 @@ def peers(quiet=True, peerswait=5):
 
 def automated(peerswait=5):
     syslog.openlog('bonding')
+    syslog.syslog('Running bonding %s' % __version__)
     syslog.syslog('Beginning an automated bonding configuration')
 
     mode = 'active-backup'
@@ -785,6 +787,7 @@ def do_bond(groups={}, bond_info={}):
 
 def bond_rhel(version, distro, groups, bond_info):
     syslog.openlog('bonding')
+    syslog.syslog('Running bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     provided_bond_info = True
@@ -916,6 +919,7 @@ HWADDR=%(hwaddr)s''' % dict(bond_info, slave=iface,
 
 def bond_deb(groups, bond_info):
     syslog.openlog('bonding')
+    syslog.syslog('Running bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     provided_bond_info = True
@@ -1075,6 +1079,7 @@ iface %s %s
 
 def bond_nmcli(groups, bond_info):
     syslog.openlog('bonding')
+    syslog.syslog('Running bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     if not os.path.exists('/bin/nmcli'):

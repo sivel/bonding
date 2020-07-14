@@ -30,6 +30,11 @@ fi
 
 
 echo "Run ${OS} ${PYTHON} ${SCRIPT}"
+echo "    with --onlypeers"
+${PYTHON} "${SCRIPT}" --onlypeers | tee /tmp/${BOND}.onlypeers.log
+
+
+echo "Run ${OS} ${PYTHON} ${SCRIPT}"
 echo "    with ${BOND} ${IP} ${IFACE1} ${IFACE2}"
 ${PYTHON} "${SCRIPT}" --nopeers --unattend --bond=${BOND} \
                     --ip=${IP} --netmask=255.255.255.0 \
@@ -40,6 +45,11 @@ echo "Activate ${BOND}"
 case ${OS} in
     "centos7")
         systemctl restart NetworkManager
+        sleep 2
+        ifdown ${IFACE1}
+        ifdown ${IFACE2}
+        ifup ${IFACE1}
+        ifup ${IFACE2}
         ;;
     "centos6")
         ifup ${BOND}
@@ -67,3 +77,33 @@ ip addr show dev ${IFACE2}
 
 echo;
 cat /proc/net/bonding/${BOND}
+
+
+echo
+echo
+echo "##########"
+echo "Verify tests"
+echo "##########"
+echo
+echo "Verify bonding test passed."
+if ! grep "Slave Interface: ${IFACE1}" /proc/net/bonding/${BOND}; then
+    echo "Did not find slave interface ${IFACE1} on ${BOND}"
+    exit 1
+fi
+if ! grep "Slave Interface: ${IFACE2}" /proc/net/bonding/${BOND}; then
+    echo "Did not find slave interface ${IFACE2} on ${BOND}"
+    exit 1
+fi
+echo "bonding test passed!"
+echo
+
+
+echo "Verify onlypeers test passed:"
+if [[ $(grep -A1 'Interface Groups' /tmp/${BOND}.onlypeers.log | wc -w) == '4' ]]; then
+    # Interface Groups:
+    # eth3 eth4
+    echo "onlypeers test passed!"
+else
+    echo "onlypeers test failed"
+    exit 1
+fi

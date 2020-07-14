@@ -26,6 +26,7 @@ import fcntl
 import socket
 import struct
 import array
+import codecs
 import os
 import sys
 import platform
@@ -42,6 +43,7 @@ __author__ = 'Matt Martz'
 
 TIMEOUT = 0.05        # In seconds
 USEREALSRCMAC = True  # Use the real source MAC address or 00:00:00:00:00:00
+DEBUG = False         # Print debug messages.
 
 GREEN = '\033[92m'
 RESET = '\033[0m'
@@ -124,7 +126,7 @@ def get_network_addr(ifname, typ):
         return socket.inet_ntoa(fcntl.ioctl(
             s.fileno(),
             typ,
-            struct.pack('256s', ifname[:15])
+            struct.pack('256s', str(ifname[:15]).encode('utf-8'))
         )[20:24])
     except IOError:
         return None
@@ -135,7 +137,7 @@ def get_mac_addr_raw(ifname):
     return fcntl.ioctl(
         s.fileno(),
         SIOCGIFHWADDR,
-        struct.pack('256s', ifname[:15])
+        struct.pack('256s', str(ifname[:15]).encode('utf-8'))
     )[18:24]
 
 
@@ -149,7 +151,7 @@ def is_iface_flags(ifname, typ):
     flags, = struct.unpack('H', fcntl.ioctl(
         s.fileno(),
         SIOCGIFFLAGS,
-        struct.pack('256s', ifname[:15])
+        struct.pack('256s', str(ifname[:15]).encode('utf-8'))
     )[16:18])
     return (flags & typ) != 0
 
@@ -158,11 +160,13 @@ def set_iface_flag(ifname, flag, flags=None):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     if not flags:
         flags = 0
-        ifreq = fcntl.ioctl(s.fileno(), SIOCGIFFLAGS,
-                            struct.pack('256s', ifname[:15]))
+        ifreq = fcntl.ioctl(
+            s.fileno(),
+            SIOCGIFFLAGS,
+            struct.pack('256s', str(ifname[:15]).encode('utf-8')))
         (flags,) = struct.unpack('16xH', ifreq[:18])
     flags |= flag
-    ifreq = struct.pack('16sH', ifname, flags)
+    ifreq = struct.pack('16sH', str(ifname).encode('utf-8'), flags)
     fcntl.ioctl(s.fileno(), SIOCSIFFLAGS, ifreq)
     s.close()
     return flags
@@ -188,7 +192,9 @@ def get_iface_list():
 def get_iface_link_status(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ecmd = array.array('B', struct.pack('2I', ETHTOOL_GLINK, 0))
-    ifreq = struct.pack('16sP', ifname, ecmd.buffer_info()[0])
+    ifreq = struct.pack('16sP',
+                        str(ifname).encode('utf-8'),
+                        ecmd.buffer_info()[0])
     fcntl.ioctl(s, SIOCETHTOOL, ifreq)
     res = ecmd.tostring()
     return bool(struct.unpack('4xI', res)[0])
@@ -327,24 +333,27 @@ def peers(quiet=True, peerswait=5):
         # The data required for building the frame
         # Static data for frame payload that includes the sending interface
         static = 'IF%sIF' % send_iface
-        # Build the rest of the payload using random data
-        payload = '%s%s' % (static, os.urandom(46 - len(static)))
+        # Build the rest of the payload with padding
+        payload = str(
+            '%s%s' % (static, "A" * (46 - len(static)))).encode('utf-8')
         # Broadcast FF:FF:FF:FF:FF:FF
-        dst_mac = '\xff\xff\xff\xff\xff\xff'
+        dst_mac = b'\xff\xff\xff\xff\xff\xff'
         if USEREALSRCMAC:
             # The real MAC address of the sending interface
             src_mac = get_mac_addr_raw(send_iface)
         else:
             # Invalid source MAC
-            src_mac = '\x00\x00\x00\x00\x00\x00'
+            src_mac = b'\x00\x00\x00\x00\x00\x00'
         # Unregistered EtherType, in this case for Interface Peer Discovery
-        frame_type = '\x50\x44'
-        frame_type_int = int(frame_type.encode('hex'), base=16)
+        frame_type = b'\x50\x44'
+        frame_type_int = int(codecs.encode(frame_type, 'hex'), base=16)
 
         # Set up the sending interface socket
         s1 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
                            socket.htons(frame_type_int))
-        s1.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE, send_iface + '\0')
+        s1.setsockopt(socket.SOL_SOCKET,
+                      SO_BINDTODEVICE,
+                      str(send_iface).encode('utf-8') + b'\0')
         s1.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s1.bind((send_iface, 0))
         s1.setblocking(0)
@@ -361,34 +370,44 @@ def peers(quiet=True, peerswait=5):
             s2 = socket.socket(socket.AF_PACKET, socket.SOCK_RAW,
                                socket.htons(frame_type_int))
             s2.setsockopt(socket.SOL_SOCKET, SO_BINDTODEVICE,
-                          recv_iface + '\0')
+                          str(recv_iface).encode('utf-8') + b'\0')
             s2.bind((recv_iface, 0))
             s2.settimeout(TIMEOUT)
 
             # Place current receiving interface into promiscuous mode
             current_flags = 0
-            ifreq = fcntl.ioctl(s2.fileno(), SIOCGIFFLAGS,
-                                struct.pack('256s', recv_iface[:15]))
+            ifreq = fcntl.ioctl(
+                s2.fileno(),
+                SIOCGIFFLAGS,
+                struct.pack('256s', str(recv_iface[:15]).encode('utf-8')))
             (current_flags,) = struct.unpack('16xH', ifreq[:18])
             current_flags |= IFF_PROMISC
-            ifreq = struct.pack('16sH', recv_iface, current_flags)
+            ifreq = struct.pack('16sH',
+                                str(recv_iface).encode('utf-8'),
+                                current_flags)
             fcntl.ioctl(s2.fileno(), SIOCSIFFLAGS, ifreq)
 
             # Try sending and receiving 3 times to give us better chances of
             # catching the send
             # Generally we always catch on the first time
             for i in range(0, 3):
+                debug("dst_mac %s" % dst_mac)
+                debug("src_mac %s" % src_mac)
+                debug("frame_type %s" % frame_type)
+                debug("payload %s" % payload)
                 try:
-                    s1.sendall('%s%s%s%s' % (dst_mac, src_mac, frame_type,
-                                             payload))
+                    s1.sendall(dst_mac + src_mac + frame_type + payload)
                 except (socket.timeout, socket.error):
                     continue
+
                 try:
                     data = s2.recv(60)
                 except (socket.timeout, socket.error):
                     continue
                 recv_frame_type = data[12:14]
                 recv_payload = data[14:]
+                debug("recv_frame_type %s" % recv_frame_type)
+                debug("recv_payload %s" % recv_payload)
                 if payload == recv_payload and recv_frame_type == frame_type:
                     if send_iface not in groups:
                         groups[send_iface] = []
@@ -398,7 +417,9 @@ def peers(quiet=True, peerswait=5):
 
             # Take the receiving interface out of promiscuous mode
             current_flags ^= IFF_PROMISC
-            ifreq = struct.pack('16sH', recv_iface, current_flags)
+            ifreq = struct.pack('16sH',
+                                str(recv_iface).encode('utf-8'),
+                                current_flags)
             fcntl.ioctl(s1.fileno(), SIOCSIFFLAGS, ifreq)
 
             s2.close()
@@ -1190,6 +1211,12 @@ def version():
 
     print(__version__)
     sys.exit(0)
+
+
+def debug(msg):
+    """ Print out debug message """
+    if DEBUG:
+        print(msg)
 
 
 def handle_args():

@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
-  # NOTE: Each private_network interface needs an IP address defined
-  #       even with `auto_config: false`. The eth2 IP is unused.
+  # NOTE: Each interface needs an IP address defined even
+  #       with `auto_config: false`.
 
   # CentOS 7
   config.vm.define "centos7" do |centos7|
@@ -8,13 +8,20 @@ Vagrant.configure("2") do |config|
     centos7.vm.hostname = "bond-centos7"
     centos7.vm.provider "virtualbox" do |v|
       v.name = "bond-centos7"
+      v.customize ["modifyvm", :id, "--nic2", "nat"]
+      v.customize ["modifyvm", :id, "--nic3", "nat"]
+      v.customize ["modifyvm", :id, "--nic4", "intnet"]
+      v.customize ["modifyvm", :id, "--nic5", "intnet"]
     end
 
     centos7.vm.network "private_network", ip: "10.10.10.10",
                        auto_config: false
     centos7.vm.network "private_network", ip: "10.10.10.11",
                        auto_config: false
-
+    centos7.vm.network "private_network", ip: "10.10.20.10",
+                       auto_config: false
+    centos7.vm.network "private_network", ip: "10.10.20.11",
+                       auto_config: false
     centos7.vm.provision "file", source: "../bonding.py",
                          destination: "$HOME/bonding.py"
 
@@ -31,12 +38,21 @@ Vagrant.configure("2") do |config|
     centos6.vm.hostname = "bond-centos6"
     centos6.vm.provider "virtualbox" do |v|
       v.name = "bond-centos6"
+      v.customize ["modifyvm", :id, "--nic2", "nat"]
+      v.customize ["modifyvm", :id, "--nic3", "nat"]
+      v.customize ["modifyvm", :id, "--nic4", "intnet"]
+      v.customize ["modifyvm", :id, "--nic5", "intnet"]
     end
 
     centos6.vm.network "private_network", ip: "10.10.10.12",
                        auto_config: false
     centos6.vm.network "private_network", ip: "10.10.10.13",
                        auto_config: false
+    centos6.vm.network "private_network", ip: "10.10.20.12",
+                       auto_config: false
+    centos6.vm.network "private_network", ip: "10.10.20.13",
+                       auto_config: false
+
 
     centos6.vm.provision "file", source: "../bonding.py",
                          destination: "$HOME/bonding.py"
@@ -56,12 +72,21 @@ Vagrant.configure("2") do |config|
       v.name = "bond-ubuntu18"
       # Disable creating ubuntu-bionic-18.04-cloudimg-console.log
       v.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+      v.customize ["modifyvm", :id, "--nic2", "nat"]
+      v.customize ["modifyvm", :id, "--nic3", "nat"]
+      v.customize ["modifyvm", :id, "--nic4", "intnet"]
+      v.customize ["modifyvm", :id, "--nic5", "intnet"]
     end
 
     ubuntu18.vm.network "private_network", ip: "10.10.10.14",
                         auto_config: false
     ubuntu18.vm.network "private_network", ip: "10.10.10.15",
                         auto_config: false
+    ubuntu18.vm.network "private_network", ip: "10.10.20.14",
+                        auto_config: false
+    ubuntu18.vm.network "private_network", ip: "10.10.20.15",
+                        auto_config: false
+
 
     ubuntu18.vm.provision "shell",
                           inline: "apt install -y ifenslave"
@@ -84,12 +109,21 @@ Vagrant.configure("2") do |config|
       v.name = "bond-ubuntu16"
       # Diable creating ubuntu-xenial-16.04-cloudimg-console.log
       v.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+      v.customize ["modifyvm", :id, "--nic2", "nat"]
+      v.customize ["modifyvm", :id, "--nic3", "nat"]
+      v.customize ["modifyvm", :id, "--nic4", "intnet"]
+      v.customize ["modifyvm", :id, "--nic5", "intnet"]
     end
 
     ubuntu16.vm.network "private_network", ip: "10.10.10.16",
                         auto_config: false
     ubuntu16.vm.network "private_network", ip: "10.10.10.17",
                         auto_config: false
+    ubuntu16.vm.network "private_network", ip: "10.10.20.16",
+                        auto_config: false
+    ubuntu16.vm.network "private_network", ip: "10.10.20.17",
+                        auto_config: false
+
 
     ubuntu16.vm.provision "file", source: "../bonding.py",
                           destination: "$HOME/bonding.py"

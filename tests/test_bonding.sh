@@ -12,7 +12,7 @@ IFACE2=${5:?'Error: Must pass interface 2 argument'}
 
 DIR="/home/vagrant"
 SCRIPT="${DIR}/bonding.py"
-PYTHON=$(command -v python3 python2 python | head -n1)
+PYTHON=$(command -v python3 python2 python /usr/libexec/platform-python | head -n1)
 
 function error() {
     echo "Error: $*" >&2
@@ -43,6 +43,12 @@ ${PYTHON} "${SCRIPT}" --nopeers --unattend --bond=${BOND} \
 
 echo "Activate ${BOND}"
 case ${OS} in
+    "centos8")
+        systemctl restart NetworkManager
+        sleep 2
+        ifup ${IFACE1}
+        ifup ${IFACE2}
+        ;;
     "centos7")
         systemctl restart NetworkManager
         sleep 2
@@ -65,9 +71,17 @@ esac
 
 
 echo "Wait for ${BOND} interface to be up (may take 60+ seconds)"
+COUNT=0
 while ! ip addr show dev ${BOND} | grep -qi 'state up';
 do
     sleep 3;
+    if [[ ${COUNT} -gt 20 ]]; then
+        echo "Timed out"
+        break
+    else
+        COUNT=$(($COUNT + 1))
+        echo -n "."
+    fi
 done;
 
 echo;
@@ -81,29 +95,36 @@ cat /proc/net/bonding/${BOND}
 
 echo
 echo
-echo "##########"
-echo "Verify tests"
-echo "##########"
-echo
-echo "Verify bonding test passed."
+echo "TEST: ##########"
+echo "TEST: Verify ${OS} tests"
+echo "TEST: ##########"
+echo "TEST"
+echo "TEST: Verify ${OS} bonding ${BOND} test passed:"
 if ! grep "Slave Interface: ${IFACE1}" /proc/net/bonding/${BOND}; then
-    echo "Did not find slave interface ${IFACE1} on ${BOND}"
+    echo "TEST: FAILED: Did not find slave interface ${IFACE1} on ${BOND}"
     exit 1
 fi
 if ! grep "Slave Interface: ${IFACE2}" /proc/net/bonding/${BOND}; then
-    echo "Did not find slave interface ${IFACE2} on ${BOND}"
+    echo "TEST: FAILED: Did not find slave interface ${IFACE2} on ${BOND}"
     exit 1
 fi
-echo "bonding test passed!"
-echo
+echo "TEST: ${OS} bonding ${BOND} test passed!"
+echo "TEST"
 
 
-echo "Verify onlypeers test passed:"
+echo "TEST: Verify ${OS} onlypeers test passed:"
+# Good
+#     Done
+#     Interface Groups:
+#     eth3 eth4
+# Bad
+#     Done
+#     No interface groups exist
 if [[ $(grep -A1 'Interface Groups' /tmp/${BOND}.onlypeers.log | wc -w) == '4' ]]; then
-    # Interface Groups:
-    # eth3 eth4
-    echo "onlypeers test passed!"
+    grep -A1 'Interface Groups' /tmp/${BOND}.onlypeers.log
+    echo "TEST: ${OS} onlypeers test passed!"
 else
-    echo "onlypeers test failed"
+    echo "TEST: FAILED ${OS} onlypeers test. Did not find Interface Group with 2 interfaces."
     exit 1
 fi
+echo "TEST"

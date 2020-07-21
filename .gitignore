@@ -28,3 +28,6 @@ pip-log.txt
 
 # PyCharm
 .idea
+
+# Vagrant
+tests/.vagrant

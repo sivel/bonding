@@ -4,6 +4,8 @@
 #
 set -e
 
+echo "test_bonding Version 1.0.0"
+
 OS=${1:?'Error: Must pass os argument'}
 BOND=${2:?'Error: Must pass bond interface argument'}
 IP=${3:?'Error: Must pass IP address argument'}
@@ -43,19 +45,8 @@ ${PYTHON} "${SCRIPT}" --nopeers --unattend --bond=${BOND} \
 
 echo "Activate ${BOND}"
 case ${OS} in
-    "centos8")
-        systemctl restart NetworkManager
-        sleep 2
-        ifup ${IFACE1}
-        ifup ${IFACE2}
-        ;;
-    "centos7")
-        systemctl restart NetworkManager
-        sleep 2
-        ifdown ${IFACE1}
-        ifdown ${IFACE2}
-        ifup ${IFACE1}
-        ifup ${IFACE2}
+     "centos8"|"centos7")
+        # Do nothing. The script brings the interface up with nmcli.
         ;;
     "centos6")
         ifup ${BOND}

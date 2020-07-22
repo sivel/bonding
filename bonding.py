@@ -787,7 +787,7 @@ def do_bond(groups={}, bond_info={}):
 
 def bond_rhel(version, distro, groups, bond_info):
     syslog.openlog('bonding')
-    syslog.syslog('Running bonding %s' % __version__)
+    syslog.syslog('Running rhel bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     provided_bond_info = True
@@ -919,7 +919,7 @@ HWADDR=%(hwaddr)s''' % dict(bond_info, slave=iface,
 
 def bond_deb(groups, bond_info):
     syslog.openlog('bonding')
-    syslog.syslog('Running bonding %s' % __version__)
+    syslog.syslog('Running deb bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     provided_bond_info = True
@@ -1079,7 +1079,7 @@ iface %s %s
 
 def bond_nmcli(groups, bond_info):
     syslog.openlog('bonding')
-    syslog.syslog('Running bonding %s' % __version__)
+    syslog.syslog('Running nmcli bonding %s' % __version__)
     syslog.syslog('Bonding configuration started')
 
     if not os.path.exists('/bin/nmcli'):
@@ -1184,9 +1184,11 @@ def bond_nmcli(groups, bond_info):
                   ["%s" % i for i in bond_info['slaves']]))
     for slave in bond_info['slaves']:
         d = dict({"slave": slave}, **bond_info)
-        # Ignore errors for the slave interface that is down.
+        # Delete interface that will become a slave interface.
+        # Ignore errors if the interface is already removed.
         run_command("nmcli connection delete %(slave)s" % d,
                     ignore_error=True)
+        # Configure slave interface.
         cmd = ("nmcli connection add "
                "type bond-slave "
                "ifname %(slave)s "
@@ -1196,6 +1198,13 @@ def bond_nmcli(groups, bond_info):
                "master %(master)s "
                % d)
         run_command(cmd)
+        # Bring slave interface up.
+        cmd = ("nmcli connection up %(slave)s" % d)
+        run_command(cmd)
+
+    # Bring bond interface up.
+    cmd = ("nmcli connection up %(master)s" % bond_info)
+    run_command(cmd)
 
     syslog.syslog('Bonding configuration has completed')
 

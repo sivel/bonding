@@ -38,7 +38,7 @@ from distutils.version import LooseVersion
 import subprocess
 from pipes import quote
 
-__version__ = '1.3.0'
+__version__ = '1.3.1'
 __author__ = 'Matt Martz'
 
 TIMEOUT = 0.05        # In seconds
